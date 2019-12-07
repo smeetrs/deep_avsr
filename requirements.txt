@@ -1,0 +1,3 @@
+python package versions
+ffmpeg
+use pip freeze > requirements.txt
