@@ -2,17 +2,17 @@ args = dict()
 
 
 #project structure
-args["CODE_DIRECTORY"] = "/media/smeet_s/Storage1/Study/DDP/Projects/deep_avsr/audio"
-args["DATA_DIRECTORY"] = "/media/smeet_s/Storage1/Study/DDP/Projects/deep_avsr/dataset"
-args["PRETRAINED_MODEL_FILE"] = "/final/models/pretrain_005w-step_0010-wer_1.000.pt"
-args["TRAINED_MODEL_FILE"] = "/final/models/train-step_0010-wer_1.000.pt"
-args["TRAINED_LM_FILE"] = "/media/smeet_s/Storage1/Study/DDP/Projects/deep_avsr/pretrained/lrs2_language_model.pt"
+args["CODE_DIRECTORY"] = "/home/SharedData/Smeet/DDP/Projects/deep_avsr/audio"
+args["DATA_DIRECTORY"] = "/home/SharedData/Smeet/LRS2_Dataset"
+args["PRETRAINED_MODEL_FILE"] = None #"/final/models/pretrain_005w-step_0010-wer_1.000.pt"
+args["TRAINED_MODEL_FILE"] = None #"/final/models/train-step_0010-wer_1.000.pt"
+args["TRAINED_LM_FILE"] = "/home/SharedData/Smeet/DDP/Projects/deep_avsr/pretrained/lrs2_language_model.pt"
 
 
 #data
 args["PRETRAIN_VAL_SPLIT"] = 0.05
 args["NUM_WORKERS"] = 8
-args["PRETRAIN_NUM_WORDS"] = 5
+args["PRETRAIN_NUM_WORDS"] = 1
 args["CHAR_TO_INDEX"] = {" ":1, "'":22, "1":30, "0":29, "3":37, "2":32, "5":34, "4":38, "7":36, "6":35, "9":31, "8":33,
                          "A":5, "C":17, "B":20, "E":2, "D":12, "G":16, "F":19, "I":6, "H":9, "K":24, "J":25, "M":18, 
                          "L":11, "O":4, "N":7, "Q":27, "P":21, "S":8, "R":10, "U":13, "T":3, "W":15, "V":23, "Y":14, 
@@ -31,9 +31,9 @@ args["STFT_OVERLAP"] = 0.030
 
 #training
 args["SEED"] = 10
-args["BATCH_SIZE"] = 2
-args["STEP_SIZE"] = 80
-args["NUM_STEPS"] = 15
+args["BATCH_SIZE"] = 32
+args["STEP_SIZE"] = 16000
+args["NUM_STEPS"] = 6000
 args["SAVE_FREQUENCY"] = 10
 args["EMPTY_CACHE"] = False
 
@@ -69,7 +69,7 @@ args["LENGTH_PENALTY_BETA"] = 0.1
 
 
 #testing
-args["TEST_DEMO_DECODING"] = "search"
+args["TEST_DEMO_DECODING"] = "greedy"
 
 
 if __name__ == '__main__':
