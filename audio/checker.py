@@ -264,7 +264,7 @@ def ctc_search_decode_checker():
     lm.to(device)
 
     predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], lm=None)
+                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], lm=lm)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist()]
     predictedSequences = list()
     s = 0
@@ -388,3 +388,4 @@ def compute_cer_checker():
 if __name__ == '__main__':
     #call the required function checker
     #delete the function calls after checking to avoid pushing everytime to github
+    ctc_search_decode_checker()
