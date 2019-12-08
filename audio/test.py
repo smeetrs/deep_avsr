@@ -51,7 +51,8 @@ if args["TRAINED_MODEL_FILE"] is not None:
     testParams = {"decodeScheme":args["TEST_DEMO_DECODING"],
                   "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
                                       "alpha":args["LM_WEIGHT_ALPHA"], 
-                                      "beta":args["LENGTH_PENALTY_BETA"]},
+                                      "beta":args["LENGTH_PENALTY_BETA"],
+                                      "threshProb":args["THRESH_PROBABILITY"]},
                   "spaceIx":args["CHAR_TO_INDEX"][" "],
                   "lm":lm}
     testLoss, testCER, testWER = evaluate(model, testLoader, loss_function, device, testParams)

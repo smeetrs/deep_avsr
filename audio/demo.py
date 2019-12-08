@@ -56,7 +56,8 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                 predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
                                                                         beamSearchParams={"beamWidth":args["BEAM_WIDTH"], 
                                                                                           "alpha":args["LM_WEIGHT_ALPHA"], 
-                                                                                          "beta":args["LENGTH_PENALTY_BETA"]},  
+                                                                                          "beta":args["LENGTH_PENALTY_BETA"],
+                                                                                          "threshProb":args["THRESH_PROBABILITY"]},  
                                                                         spaceIx=args["CHAR_TO_INDEX"][" "], 
                                                                         lm=lm)
             else:

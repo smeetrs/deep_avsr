@@ -196,7 +196,7 @@ def lrs2pretrain_max_inplen_checker():
                         inpLen = (len(inputAudio) - 640)//160 + 1
                         if len(inputAudio) < (640 + 3*160):
                             inpLen = 4
-                        reqLen = req_input_length(trgt) + 1
+                        reqLen = req_input_length(trgt)
                         if reqLen*4 > inpLen:
                             inpLen = reqLen*4
                         if inpLen > maxInpLen:
@@ -256,14 +256,15 @@ def ctc_search_decode_checker():
             outputProbs[i,n,ix] = 0.61
     outputLogProbs = torch.log(outputProbs)
 
-    beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"]}
+    beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
+                        "threshProb":args["THRESH_PROBABILITY"]}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     lm = LRS2CharLM().to(device)
     lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
     lm.to(device)
 
     predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], lm=lm)
+                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], lm=None)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist()]
     predictedSequences = list()
     s = 0
@@ -386,5 +387,4 @@ def compute_cer_checker():
 
 if __name__ == '__main__':
     #call the required function checker
-    compute_cer_checker()
-    compute_wer_checker()
+    #delete the function calls after checking to avoid pushing everytime to github

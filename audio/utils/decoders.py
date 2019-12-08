@@ -99,6 +99,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=
     beamWidth = beamSearchParams["beamWidth"]
     alpha = beamSearchParams["alpha"]
     beta = beamSearchParams["beta"]
+    threshProb = beamSearchParams["threshProb"]
 
     outLogProbs = outputBatch.transpose(0, 1).numpy()
     inpLens = inputLenBatch.numpy()
@@ -119,7 +120,8 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=
 
         for t in range(maxT):
             curr = BeamState(alpha=alpha, beta=beta)
-            
+            prunedChars = np.where(mat[t,:] > np.log(threshProb))[0]
+
             bestLabelings = last.sort()[:beamWidth]
             for labeling in bestLabelings:
 
@@ -139,7 +141,11 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=
                 curr.entries[labeling].lmApplied = True 
                 curr.entries[labeling].lmState = last.entries[labeling].lmState
                 
-                for c in range(1, maxC):
+
+                for c in prunedChars:
+
+                    if c == blank:
+                        continue
                     
                     newLabeling = labeling + (c,)
 
