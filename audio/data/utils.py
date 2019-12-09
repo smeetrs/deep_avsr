@@ -78,7 +78,7 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
         
         ix = np.random.choice(np.arange(len(nWordLens)), p=softmax(nWordLens))
         trgtNWord = nWords[ix]
-        
+
         audioStartTime = float(lines[4+ix].split(" ")[1])
         audioEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
         sampFreq, audio = wavfile.read(audioFile)
