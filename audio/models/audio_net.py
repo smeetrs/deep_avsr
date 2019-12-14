@@ -36,14 +36,14 @@ class AudioNet(nn.Module):
         return
 
     def forward(self, inputBatch):
-        batch = inputBatch.transpose(0, 1).transpose(1, 2)
-        batch = self.audioConv(batch)
+        inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
+        batch = self.audioConv(inputBatch)
         batch = batch.transpose(1, 2).transpose(0, 1)
         batch = self.positionalEncoding(batch)
         batch = self.audioEncoder(batch)
         batch = self.audioDecoder(batch)
         batch = batch.transpose(0, 1).transpose(1, 2)
         batch = self.outputConv(batch)
-        batch = F.log_softmax(batch, dim=1)
-        outputBatch = batch.transpose(1, 2).transpose(0, 1)
+        outputBatch = F.log_softmax(batch, dim=1)
+        outputBatch = outputBatch.transpose(1, 2).transpose(0, 1)
         return outputBatch

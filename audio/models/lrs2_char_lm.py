@@ -22,8 +22,8 @@ class LRS2CharLM(nn.Module):
         else:
             batch, finalStateBatch = self.lstm(batch)
         batch = batch.transpose(0, 1)
-        batch = F.log_softmax(self.fc(batch), dim=2)
-        outputBatch = batch.transpose(0, 1)
+        outputBatch = F.log_softmax(self.fc(batch), dim=2)
+        outputBatch = outputBatch.transpose(0, 1)
         return outputBatch, finalStateBatch
 
 
