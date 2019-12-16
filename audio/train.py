@@ -97,12 +97,12 @@ lm = LRS2CharLM().to(device)
 lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
 lm.to(device)
 valParams = {"decodeScheme":"greedy",
-              "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
-                                  "alpha":args["LM_WEIGHT_ALPHA"], 
-                                  "beta":args["LENGTH_PENALTY_BETA"],
-                                  "threshProb":args["THRESH_PROBABILITY"]},
-              "spaceIx":args["CHAR_TO_INDEX"][" "],
-              "lm":lm}
+             "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
+                                 "alpha":args["LM_WEIGHT_ALPHA"], 
+                                 "beta":args["LENGTH_PENALTY_BETA"],
+                                 "threshProb":args["THRESH_PROBABILITY"]},
+             "spaceIx":args["CHAR_TO_INDEX"][" "],
+             "lm":lm}
 
 
 for step in range(1, args["NUM_STEPS"]+1):

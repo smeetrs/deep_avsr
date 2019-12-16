@@ -26,11 +26,8 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
-                            charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                            stftParams={"window":args["STFT_WINDOW"], 
-                                        "winLen":args["STFT_WIN_LENGTH"], 
-                                        "overlap":args["STFT_OVERLAP"]})
+stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], stftParams=stftParams)
 pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
 pretrainSize = len(pretrainData) - pretrainValSize
 pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
@@ -97,12 +94,12 @@ lm = LRS2CharLM().to(device)
 lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
 lm.to(device)
 valParams = {"decodeScheme":"greedy",
-              "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
-                                  "alpha":args["LM_WEIGHT_ALPHA"], 
-                                  "beta":args["LENGTH_PENALTY_BETA"],
-                                  "threshProb":args["THRESH_PROBABILITY"]},
-              "spaceIx":args["CHAR_TO_INDEX"][" "],
-              "lm":lm}
+             "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
+                                 "alpha":args["LM_WEIGHT_ALPHA"], 
+                                 "beta":args["LENGTH_PENALTY_BETA"],
+                                 "threshProb":args["THRESH_PROBABILITY"]},
+             "spaceIx":args["CHAR_TO_INDEX"][" "],
+             "lm":lm}
 
 
 for step in range(1, args["NUM_STEPS"]+1):
@@ -123,7 +120,7 @@ for step in range(1, args["NUM_STEPS"]+1):
 
     if (step % args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]):
         
-        savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/pretrain_{:03d}w-step_{:04d}-wer_{:.3f}.pt".format(args["PRETRAIN_NUM_WORDS"],
+        savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/pretrain_{:03d}w-step_{:04d}-wer_{:.3f}.pt".format(args["PRETRAIN_NUM_WORDS"], 
                                                                                                                     step, validationWER)
         torch.save(model.state_dict(), savePath)
 
