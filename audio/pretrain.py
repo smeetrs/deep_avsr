@@ -39,7 +39,8 @@ pretrainValLoader = DataLoader(pretrainValData, batch_size=args["BATCH_SIZE"], c
 model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
                  numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
                  inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"]).to(device)
+                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"], 
                                                  patience=args["LR_SCHEDULER_WAIT"], threshold=args["LR_SCHEDULER_THRESH"], 
