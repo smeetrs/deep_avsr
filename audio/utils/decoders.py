@@ -21,8 +21,8 @@ def ctc_greedy_decode(outputBatch, inputLenBatch, blank=0):
         pred = pred[pred != blank]
         preds.extend(list(pred))
         predLens.append(len(pred))
-    predictionBatch = torch.tensor(preds)
-    predictionLenBatch = torch.tensor(predLens)
+    predictionBatch = torch.tensor(preds).int()
+    predictionLenBatch = torch.tensor(predLens).int()
     return predictionBatch, predictionLenBatch
 
 
@@ -168,8 +168,8 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=
         preds.extend(bestLabeling)
         predLens.append(len(bestLabeling))
 
-    predictionBatch = torch.tensor(preds)
-    predictionLenBatch = torch.tensor(predLens)
+    predictionBatch = torch.tensor(preds).int()
+    predictionLenBatch = torch.tensor(predLens).int()
     return predictionBatch, predictionLenBatch
 
 
