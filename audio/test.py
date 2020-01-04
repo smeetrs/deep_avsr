@@ -48,7 +48,7 @@ if args["TRAINED_MODEL_FILE"] is not None:
     lm = LRS2CharLM().to(device)
     lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
     lm.to(device)
-    beamSearchParams:{"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"], "threshProb":args["THRESH_PROBABILITY"]}
+    beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"], "threshProb":args["THRESH_PROBABILITY"]}
     testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":lm}
     testLoss, testCER, testWER = evaluate(model, testLoader, loss_function, device, testParams)
     
