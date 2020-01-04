@@ -15,12 +15,15 @@ from utils.metrics import compute_cer, compute_wer
 
 
 def req_input_length_checker():
-    strings = ["WORKS FOR DOODEE OOTY ASSAM", "       ", "NOOOOOOOOOO", "IT'S THAT SIMPLE"]
+    strings = ["WORKS FOR DOODEE OOTY ASSAM~", "       ~", "NOOOOOOOOOO~", "IT'S THAT SIMPLE~"]
     for n in range(len(strings)):
         trgt = list()
         for i in range(len(strings[n])):
             char = strings[n][i]
-            ix = args["CHAR_TO_INDEX"][char]
+            if char == "~":
+                ix = args["CHAR_TO_INDEX"]["<EOS>"]
+            else:
+                ix = args["CHAR_TO_INDEX"][char]
             trgt.append(ix)
         print(req_input_length(trgt))
     return
@@ -78,7 +81,7 @@ def lrs2main_max_inplen_checker():
                     trgt = f.readline().strip()[7:]
                 sampFreq, audio = wavfile.read(audioFile)
                 inpLen = (len(audio) - 640)//160 + 1
-                reqLen = req_input_length(trgt)
+                reqLen = req_input_length(trgt)+1
                 if reqLen*4 > inpLen:
                     inpLen = reqLen*4
                 if inpLen > maxInpLen:
@@ -167,12 +170,12 @@ def lrs2pretrain_max_inplen_checker():
                 words = trgt.split(" ")
 
                 if len(words) <= numWords:
-                    if len(trgt) > 256:
+                    if len(trgt)+1 > 256:
                         print("Max target length reached. Exiting")
                         exit()
                     sampFreq, audio = wavfile.read(audioFile)
                     inpLen = (len(audio) - 640)//160 + 1
-                    reqLen = req_input_length(trgt)
+                    reqLen = req_input_length(trgt)+1
                     if reqLen*4 > inpLen:
                         inpLen = reqLen*4
                     if inpLen > maxInpLen:
@@ -180,7 +183,7 @@ def lrs2pretrain_max_inplen_checker():
 
                 else:
                     nWords = np.array([" ".join(words[i:i+numWords]) for i in range(len(words) - numWords + 1)])
-                    nWordLens = np.array([len(nWord) for nWord in nWords]).astype(np.float)
+                    nWordLens = np.array([len(nWord)+1 for nWord in nWords]).astype(np.float)
                     nWordLens[nWordLens > 256] = -np.inf
                     if np.all(nWordLens == -np.inf):
                         print("Max target length reached. Exiting")
@@ -188,7 +191,7 @@ def lrs2pretrain_max_inplen_checker():
 
                     nWords = nWords[nWordLens > 0]       
                     for ix in range(len(nWords)):
-                        trgtNWord = nWords[ix]
+                        trgt = nWords[ix]
                         audioStartTime = float(lines[4+ix].split(" ")[1])
                         audioEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
                         sampFreq, audio = wavfile.read(audioFile)
@@ -196,7 +199,7 @@ def lrs2pretrain_max_inplen_checker():
                         inpLen = (len(inputAudio) - 640)//160 + 1
                         if len(inputAudio) < (640 + 3*160):
                             inpLen = 4
-                        reqLen = req_input_length(trgt)
+                        reqLen = req_input_length(trgt)+1
                         if reqLen*4 > inpLen:
                             inpLen = reqLen*4
                         if inpLen > maxInpLen:
@@ -213,7 +216,7 @@ def ctc_greedy_decode_checker():
                "---------------------------------------------------------------------------"]
     inpLens = [64, 32, 29, 75, 56]
 
-    outputProbs = 0.01*torch.zeros((max(inpLens), len(inpLens), args["NUM_CLASSES"]))
+    outputProbs = 0.01*torch.ones((max(inpLens), len(inpLens), args["NUM_CLASSES"]))
     inpLens = torch.tensor(inpLens)
     for n in range(len(outputs)):
         for i in range(len(outputs[n])):
@@ -222,16 +225,16 @@ def ctc_greedy_decode_checker():
                 ix = 0
             else:
                 ix = args["CHAR_TO_INDEX"][char]
-            outputProbs[i,n,ix] = 0.61
+            outputProbs[i,n,ix] = 1.5
     outputLogProbs = torch.log_softmax(outputProbs, dim=2)
 
-    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens)
-    predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist()]
+    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
+    predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
     for ln in predictionLens.tolist():
-        predictedSequences.append("".join(predictions[s:s+ln]))
-        s = s + ln
+        predictedSequences.append("".join(predictions[s:s+ln-1]))
+        s = s + ln - 1
     print(predictedSequences)
     return
 
@@ -244,7 +247,7 @@ def ctc_search_decode_checker():
                "---------------------------------------------------------------------------"]
     inpLens = [64, 32, 29, 75, 56]
 
-    outputProbs = 0.01*torch.zeros((len(outputs[0]), len(inpLens), args["NUM_CLASSES"]))
+    outputProbs = 0.01*torch.ones((len(outputs[0]), len(inpLens), args["NUM_CLASSES"]))
     inpLens = torch.tensor(inpLens)
     for n in range(len(outputs)):
         for i in range(len(outputs[n])):
@@ -253,7 +256,7 @@ def ctc_search_decode_checker():
                 ix = 0
             else:
                 ix = args["CHAR_TO_INDEX"][char]
-            outputProbs[i,n,ix] = 0.61
+            outputProbs[i,n,ix] = 1.5
     outputLogProbs = torch.log(outputProbs)
 
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
@@ -264,13 +267,14 @@ def ctc_search_decode_checker():
     lm.to(device)
 
     predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], lm=lm)
-    predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist()]
+                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], 
+                                                    eosIx=args["CHAR_TO_INDEX"]["<EOS>"], lm=lm)
+    predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
     for ln in predictionLens.tolist():
-        predictedSequences.append("".join(predictions[s:s+ln]))
-        s = s + ln
+        predictedSequences.append("".join(predictions[s:s+ln-1]))
+        s = s + ln - 1
     print(predictedSequences)
     return
 
@@ -320,17 +324,20 @@ def audionet_checker():
 
 
 def compute_wer_checker():
-    preds = [" SOMETH'NG  '  NEE DS TO BE D'NE   ABOUT IT", "FUNCTION CHECKING INITIATED", "    '   ", ""]
-    trgts = ["SOMETHING NEEDS TO BE DONE ABOUT IT", "FUNCTION CHECKING INITIATED", "SOME ARBIT STRING", "ARBIT STRING"]
-    predLens = [43, 27, 8, 0]
-    trgtLens = [35, 27, 17, 12]
+    preds = [" SOMETH'NG  '  NEE DS TO BE D'NE   ABOUT IT~", "FUNCTION CHECKING INITIATED~", "    '   ~", "~"]
+    trgts = ["SOMETHING NEEDS TO BE DONE ABOUT IT~", "FUNCTION CHECKING INITIATED~", "SOME ARBIT STRING~", "ARBIT STRING~"]
+    predLens = [44, 28, 9, 1]
+    trgtLens = [36, 28, 18, 13]
 
     predIxs = list()
     for n in range(len(preds)):
         predIx = list()
         for i in range(len(preds[n])):
             char = preds[n][i]
-            ix = args["CHAR_TO_INDEX"][char]
+            if char == "~":
+                ix = args["CHAR_TO_INDEX"]["<EOS>"]
+            else:
+                ix = args["CHAR_TO_INDEX"][char]
             predIx.append(ix)
         predIxs.extend(predIx)
 
@@ -339,7 +346,10 @@ def compute_wer_checker():
         trgtIx = list()
         for i in range(len(trgts[n])):
             char = trgts[n][i]
-            ix = args["CHAR_TO_INDEX"][char]
+            if char == "~":
+                ix = args["CHAR_TO_INDEX"]["<EOS>"]
+            else:
+                ix = args["CHAR_TO_INDEX"][char]
             trgtIx.append(ix)
         trgtIxs.extend(trgtIx)
 
@@ -353,17 +363,20 @@ def compute_wer_checker():
 
 
 def compute_cer_checker():
-    preds = ["SOMETIN'  ' NEDSS", "   ALRIT ", "CHEK DON", "EXACT SAME"]
-    trgts = ["SOMETHING NEEDS", "ALRIGHT", "CHECK DONE", "EXACT SAME"]
-    predLens = [17, 9, 8, 10]
-    trgtLens = [15, 7, 10, 10]
+    preds = ["SOMETIN'  ' NEDSS~", "   ALRIT ~", "CHEK DON~", "EXACT SAME~"]
+    trgts = ["SOMETHING NEEDS~", "ALRIGHT~", "CHECK DONE~", "EXACT SAME~"]
+    predLens = [18, 10, 9, 11]
+    trgtLens = [16, 8, 11, 11]
 
     predIxs = list()
     for n in range(len(preds)):
         predIx = list()
         for i in range(len(preds[n])):
             char = preds[n][i]
-            ix = args["CHAR_TO_INDEX"][char]
+            if char == "~":
+                ix = args["CHAR_TO_INDEX"]["<EOS>"]
+            else:
+                ix = args["CHAR_TO_INDEX"][char]
             predIx.append(ix)
         predIxs.extend(predIx)
 
@@ -372,7 +385,10 @@ def compute_cer_checker():
         trgtIx = list()
         for i in range(len(trgts[n])):
             char = trgts[n][i]
-            ix = args["CHAR_TO_INDEX"][char]
+            if char == "~":
+                ix = args["CHAR_TO_INDEX"]["<EOS>"]
+            else:
+                ix = args["CHAR_TO_INDEX"][char]
             trgtIx.append(ix)
         trgtIxs.extend(trgtIx)
 

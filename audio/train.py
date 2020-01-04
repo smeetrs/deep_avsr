@@ -92,7 +92,7 @@ numTotalParams, numTrainableParams = num_params(model)
 print("Number of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
-trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "]}
+trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 lm = LRS2CharLM().to(device)
 lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
 lm.to(device)
@@ -102,6 +102,7 @@ valParams = {"decodeScheme":"greedy",
                                  "beta":args["LENGTH_PENALTY_BETA"],
                                  "threshProb":args["THRESH_PROBABILITY"]},
              "spaceIx":args["CHAR_TO_INDEX"][" "],
+             "eosIx":args["CHAR_TO_INDEX"]["<EOS>"],
              "lm":lm}
 
 

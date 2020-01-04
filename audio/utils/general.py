@@ -30,7 +30,8 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
         optimizer.step()
 
         trainingLoss = trainingLoss + loss.item()
-        predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch.detach(), inputLenBatch)
+        predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch.detach(), inputLenBatch, 
+                                                                eosIx=trainParams["eosIx"])
         trainingCER = trainingCER + compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
         trainingWER = trainingWER + compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, 
                                                 spaceIx=trainParams["spaceIx"])
@@ -59,11 +60,13 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
 
             evalLoss = evalLoss + loss.item()
             if evalParams["decodeScheme"] == "greedy":
-                predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch)
+                predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch,
+                                                                        eosIx=evalParams["eosIx"])
             elif evalParams["decodeScheme"] == "search":
                 predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
                                                                         beamSearchParams=evalParams["beamSearchParams"],  
-                                                                        spaceIx=evalParams["spaceIx"], lm=evalParams["lm"])
+                                                                        spaceIx=evalParams["spaceIx"], 
+                                                                        eosIx=evalParams["eosIx"], lm=evalParams["lm"])
             else:
                 print("Invalid Decode Scheme")
                 exit()

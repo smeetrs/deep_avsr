@@ -6,9 +6,14 @@ np.seterr(divide="ignore")
 
 
 
-def ctc_greedy_decode(outputBatch, inputLenBatch, blank=0):
+def ctc_greedy_decode(outputBatch, inputLenBatch, eosIx, blank=0):
     outputBatch = outputBatch.cpu()
     inputLenBatch = inputLenBatch.cpu()
+    outputBatch[:,:,blank] = torch.log(torch.exp(outputBatch[:,:,blank]) + torch.exp(outputBatch[:,:,eosIx]))
+    reqIxs = np.arange(outputBatch.size(2))
+    reqIxs = reqIxs[reqIxs != eosIx]
+    outputBatch = outputBatch[:,:,reqIxs]
+    
     predCharIxs = torch.argmax(outputBatch, dim=2).T.numpy()
     inpLens = inputLenBatch.numpy()
     preds = list()
@@ -19,7 +24,9 @@ def ctc_greedy_decode(outputBatch, inputLenBatch, blank=0):
         pred = pred[:ilen]
         pred = np.array([x[0] for x in groupby(pred)])
         pred = pred[pred != blank]
-        preds.extend(list(pred))
+        pred = list(pred)
+        pred.append(eosIx)
+        preds.extend(pred)
         predLens.append(len(pred))
     predictionBatch = torch.tensor(preds).int()
     predictionLenBatch = torch.tensor(predLens).int()
@@ -93,9 +100,14 @@ def log_add(a, b):
 
 
 
-def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=None, blank=0):
+def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eosIx, lm=None, blank=0):
     outputBatch = outputBatch.cpu()
     inputLenBatch = inputLenBatch.cpu()
+    outputBatch[:,:,blank] = torch.log(torch.exp(outputBatch[:,:,blank]) + torch.exp(outputBatch[:,:,eosIx]))
+    reqIxs = np.arange(outputBatch.size(2))
+    reqIxs = reqIxs[reqIxs != eosIx]
+    outputBatch = outputBatch[:,:,reqIxs]
+    
     beamWidth = beamSearchParams["beamWidth"]
     alpha = beamSearchParams["alpha"]
     beta = beamSearchParams["beta"]
@@ -165,6 +177,8 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, lm=
             last = curr
 
         bestLabeling = last.sort()[0] 
+        bestLabeling = list(bestLabeling)
+        bestLabeling.append(eosIx)
         preds.extend(bestLabeling)
         predLens.append(len(bestLabeling))
 

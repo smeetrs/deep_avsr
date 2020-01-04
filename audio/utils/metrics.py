@@ -10,13 +10,14 @@ def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
     preds = list(torch.split(predictionBatch, predictionLenBatch.tolist()))
     trgts = list(torch.split(targetBatch, targetLenBatch.tolist()))
     totalEdits = 0
-    totalChars = torch.sum(targetLenBatch).item()
+    totalChars = 0
     
     for n in range(len(preds)):
-        pred = preds[n].numpy()
-        trgt = trgts[n].numpy()
+        pred = preds[n].numpy()[:-1]
+        trgt = trgts[n].numpy()[:-1]
         numEdits = editdistance.eval(pred, trgt)
         totalEdits = totalEdits + numEdits
+        totalChars = totalChars + len(trgt)
 
     return totalEdits/totalChars
 
@@ -32,8 +33,8 @@ def compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
     totalWords = 0
     
     for n in range(len(preds)):
-        pred = preds[n].numpy()
-        trgt = trgts[n].numpy()
+        pred = preds[n].numpy()[:-1]
+        trgt = trgts[n].numpy()[:-1]
 
         predWords = np.split(pred, np.where(pred == spaceIx)[0])
         predWords = [predWords[0].tostring()] + [predWords[i][1:].tostring() for i in range(1, len(predWords)) if len(predWords[i][1:]) != 0]

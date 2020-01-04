@@ -19,7 +19,9 @@ def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
 
-    trgt = np.array([charToIx[char] for char in trgt])
+    trgt = [charToIx[char] for char in trgt]
+    trgt.append(charToIx["<EOS>"])
+    trgt = np.array(trgt)
     trgtLen = len(trgt)
 
     stftWindow = stftParams["window"]
@@ -63,14 +65,14 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
 
     if len(words) <= numWords:
         trgtNWord = trgt
-        if len(trgtNWord) > 256:
+        if len(trgtNWord)+1 > 256:
             print("Max target length reached. Exiting")
             exit()
         sampFreq, inputAudio = wavfile.read(audioFile)
 
     else:
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
-        nWordLens = np.array([len(nWord) for nWord in nWords]).astype(np.float)
+        nWordLens = np.array([len(nWord)+1 for nWord in nWords]).astype(np.float)
         nWordLens[nWordLens > 256] = -np.inf
         if np.all(nWordLens == -np.inf):
             print("Max target length reached. Exiting")
@@ -96,7 +98,9 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
 
-    trgt = np.array([charToIx[char] for char in trgtNWord])
+    trgt = [charToIx[char] for char in trgtNWord]
+    trgt.append(charToIx["<EOS>"])
+    trgt = np.array(trgt)
     trgtLen = len(trgt)
 
 

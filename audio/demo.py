@@ -48,7 +48,8 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                 outputBatch = model(inputBatch)
             
             if args["TEST_DEMO_DECODING"] == "greedy":
-                predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch)
+                predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch, 
+                                                                        eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
             elif args["TEST_DEMO_DECODING"] == "search":
                 lm = LRS2CharLM().to(device)
                 lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
@@ -58,13 +59,15 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                                                                                           "alpha":args["LM_WEIGHT_ALPHA"], 
                                                                                           "beta":args["LENGTH_PENALTY_BETA"],
                                                                                           "threshProb":args["THRESH_PROBABILITY"]},  
-                                                                        spaceIx=args["CHAR_TO_INDEX"][" "], 
+                                                                        spaceIx=args["CHAR_TO_INDEX"][" "],
+                                                                        eosIx=args["CHAR_TO_INDEX"]["<EOS>"] 
                                                                         lm=lm)
             else:
                 print("Invalid Decode Scheme")
                 exit()
 
-            pred = predictionBatch[:]
+            pred = predictionBatch[:][:-1]
+            trgt = targetBatch[:][:-1]
             pred = "".join([args["INDEX_TO_CHAR"][ix] for ix in pred.tolist()])
             trgt = "".join([args["INDEX_TO_CHAR"][ix] for ix in trgt.tolist()])
         
