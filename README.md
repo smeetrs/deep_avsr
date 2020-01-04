@@ -5,7 +5,6 @@ The repository contains a PyTorch reproduction of the [Deep Audio-Visual Speech 
 
 ## Changes Required
 - Adding ignored files to github, unsetting git credentials
-- saving best models by observing the val wer instead of at regular intervals
 - removing the non-word regions in the data by observing the time
 - retraining/fine-tuning the models with apostrophe and ordering according to lang model (output layer fine-tune) 
 - going through github code
