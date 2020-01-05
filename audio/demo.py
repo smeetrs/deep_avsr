@@ -60,7 +60,7 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                                                                                           "beta":args["LENGTH_PENALTY_BETA"],
                                                                                           "threshProb":args["THRESH_PROBABILITY"]},  
                                                                         spaceIx=args["CHAR_TO_INDEX"][" "],
-                                                                        eosIx=args["CHAR_TO_INDEX"]["<EOS>"] 
+                                                                        eosIx=args["CHAR_TO_INDEX"]["<EOS>"], 
                                                                         lm=lm)
             else:
                 print("Invalid Decode Scheme")
