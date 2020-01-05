@@ -9,7 +9,6 @@ import os, shutil
 
 from config import args
 from models.audio_net import AudioNet
-from models.lrs2_char_lm import LRS2CharLM
 from data.lrs2_dataset import LRS2Main
 from data.utils import collate_fn
 from utils.general import num_params, train, evaluate
@@ -93,17 +92,7 @@ print("Number of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
-lm = LRS2CharLM().to(device)
-lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-lm.to(device)
-valParams = {"decodeScheme":"greedy",
-             "beamSearchParams":{"beamWidth":args["BEAM_WIDTH"], 
-                                 "alpha":args["LM_WEIGHT_ALPHA"], 
-                                 "beta":args["LENGTH_PENALTY_BETA"],
-                                 "threshProb":args["THRESH_PROBABILITY"]},
-             "spaceIx":args["CHAR_TO_INDEX"][" "],
-             "eosIx":args["CHAR_TO_INDEX"]["<EOS>"],
-             "lm":lm}
+valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 
 
 for step in range(1, args["NUM_STEPS"]+1):

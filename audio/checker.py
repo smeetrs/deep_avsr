@@ -262,9 +262,12 @@ def ctc_search_decode_checker():
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
                         "threshProb":args["THRESH_PROBABILITY"]}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lm = LRS2CharLM().to(device)
-    lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-    lm.to(device)
+    if args["USE_LM"]:
+        lm = LRS2CharLM().to(device)
+        lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
+        lm.to(device)
+    else:
+        lm = None
 
     predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
                                                     beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], 

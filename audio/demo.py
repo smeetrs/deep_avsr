@@ -51,9 +51,12 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                 predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch, 
                                                                         eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
             elif args["TEST_DEMO_DECODING"] == "search":
-                lm = LRS2CharLM().to(device)
-                lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-                lm.to(device)
+                if args["USE_LM"]:
+                    lm = LRS2CharLM().to(device)
+                    lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
+                    lm.to(device)
+                else:
+                    lm = None
                 predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
                                                                         beamSearchParams={"beamWidth":args["BEAM_WIDTH"], 
                                                                                           "alpha":args["LM_WEIGHT_ALPHA"], 
