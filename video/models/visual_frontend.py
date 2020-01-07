@@ -1,11 +1,11 @@
-#importing the required packages
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
 
-#the basic block used in the resnet
+
+
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -17,20 +17,20 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(outplanes)
         self.downsample = downsample
 
-    def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+    def forward(self, inputBatch):
+        batch = F.relu(self.bn1(self.conv1(inputBatch)))
+        batch = self.bn2(self.conv2(batch))
         if self.downsample is not None:
-            residual = self.downsample(x)
+            residualBatch = self.downsample(inputBatch)
         else:
-            residual = x
-        out = out + residual
-        out = F.relu(out)
-        return out
+            residualBatch = inputBatch
+        batch = batch + residualBatch
+        outputBatch = F.relu(batch)
+        return outputBatch
 
 
 
-#constructs the resnet
+
 class ResNet(nn.Module):
 
     def __init__(self, repetitions=[2,2,2,2]):
@@ -45,7 +45,6 @@ class ResNet(nn.Module):
         return
             
         
-    #constructs a layer given the block to use, output channels, block repetitions and the net stride
     def _make_layer(self, block, outplanes, reps, stride):
         downsample = None
         if stride != 1 or self.inplanes != outplanes*block.expansion:
@@ -74,75 +73,39 @@ class ResNet(nn.Module):
         return
 
 
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        x = self.avgpool(x)
-        return x
+    def forward(self, inputBatch):
+        batch = self.layer1(inputBatch)
+        batch = self.layer2(batch)
+        batch = self.layer3(batch)
+        batch = self.layer4(batch)
+        outputBatch = self.avgpool(batch)
+        return outputBatch
 
 
 
 
-
-
-#visual frontend for extracting visual features
 class VisualFrontend(nn.Module):
 
     def __init__(self):
         super(VisualFrontend, self).__init__()
-        
-        #the 3D frontend
         self.frontend3D = nn.Sequential(
                             nn.Conv3d(1, 64, kernel_size=(5,7,7), stride=(1,2,2), padding=(2,3,3), bias=False),
                             nn.BatchNorm3d(64),
                             nn.ReLU(),
                             nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
                         )
-        #resnet
         self.resnet = ResNet()
         return
 
 
-    def forward(self, x):
-        batchSize = x.size(0)
-        x = self.frontend3D(x)
+    def forward(self, inputBatch):
+        batchsize = inputBatch.size(0)
+        batch = self.frontend3D(inputBatch)
 
-        #reshape (N,C,T,H,W) to (N*T,C,H,W)
-        x = x.transpose(1, 2)
-        x = x.view(-1, 64, x.size(3), x.size(4))
-
-        x = self.resnet(x)
+        batch = batch.transpose(1, 2)
+        batch = batch.reshape(batch.size(0)*batch.size(1), batch.size(2), batch.size(3), batch.size(4))
+        outputBatch = self.resnet(batch)
+        outputBatch = outputBatch.view(batchsize, -1, 512)
+        outputBatch = outputBatch.transpose(1 ,2)
+        return outputBatch
         
-        #revert the reshape to get a 512-dimensional feature vector for each frame
-        x = x.view(batchSize, -1, 512)
-        x = x.transpose(0, 1)
-        return x
-        
-
-
-        
-if __name__=="__main__":
-    
-    #testing the VisualFrontend module
-    import cv2 as cv
-
-    #read the mouth ROI sequence image and reshape it to (N,C,T,H,W)
-    #N -> Batch size, C -> No of Channels, T -> Depth, H -> Height, W-> Width
-    #convert the pixel values to lie between 0 and 1
-    img = cv.imread("./demo/00004_roi.png", 0)
-    ch = np.split(img, img.shape[1]/112, axis=1)
-    ch = [elm.reshape((112,112,1)) for elm in ch]
-    inp = np.dstack(ch)
-    inp = np.transpose(inp, (2,0,1))
-    inp = inp.reshape((1,1,inp.shape[0],112,112))
-    inp = torch.from_numpy(inp)
-    inp = inp.float()
-    inp = inp/255
-    
-    #pass the input to the VisualFrontend and obtain the output
-    vf = VisualFrontend().to("cpu")
-    vf.eval()
-    out = vf.forward(inp)
-    print(out.size())

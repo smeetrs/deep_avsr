@@ -6,6 +6,6 @@ The repository contains a PyTorch reproduction of the [Deep Audio-Visual Speech 
 ## Changes Required
 - Adding ignored files to github, unsetting git credentials
 - removing the non-word regions in the data by observing the time
-- retraining/fine-tuning the models with apostrophe and ordering according to lang model (output layer fine-tune) 
 - going through github code
 - commenting the code (do it last since editing the comments is a PITA)
+- video - pretrain 1w three models, one with only pretrained resnet, one with pretrained resnet and encoder and fixing them, previous case but not fixed

@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import cv2 as cv
 import os
 
 from config import args
-from models.audio_net import AudioNet
+from models.video_net import VideoNet
 from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
@@ -22,10 +23,9 @@ print("Trained Model File: %s\n" %(args["TRAINED_MODEL_FILE"]))
 print("Demo Directory: %s\n\n" %(args["CODE_DIRECTORY"] + "/demo"))
 
 
-model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
-                 numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
-                 inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
+                 peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
+                 numClasses=args["NUM_CLASSES"])
 model.to(device)
 model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["TRAINED_MODEL_FILE"]))
 model.to(device)
@@ -36,14 +36,28 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
     for file in files:
         if file.endswith(".mp4"):
             videoFile = os.path.join(root, file)
-            audioFile = os.path.join(root, file[:-4]) + ".wav"
+            roiFile = os.path.join(root, file[:-4]) + ".png"
             targetFile = os.path.join(root, file[:-4]) + ".txt"
+            
+            roiSize = args["ROI_SIZE"]
+            captureObj = cv.VideoCapture(videoFile)
+            roiSequence = np.empty((roiSize,0), dtype=np.int)
+            while (captureObj.isOpened()):
+                ret, frame = captureObj.read()
+                if ret == True:
+                    frame = cv.resize(frame, (224,224), interpolation=cv.INTER_CUBIC)
+                    grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+                    roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
+                    roiSequence = np.hstack((roiSequence, roi))
+                else:
+                    break
+            captureObj.release()
+            cv.imwrite(roiFile, roiSequence)
 
-            v2aCommand = 'ffmpeg -y -v quiet -i ' + videoFile + ' -ac 1 -ar 16000 -vn ' + audioFile
-            os.system(v2aCommand)
 
-            stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], stftParams)
+            videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
+                           "normStd":args["NORMALIZATION_STD"]}
+            inp, trgt, inpLen, trgtLen = prepare_main_input(roiFile, targetFile, args["CHAR_TO_INDEX"], videoParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
             inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)
@@ -61,6 +75,7 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                     lm.to(device)
                 else:
                     lm = None
+                
                 predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
                                                                         beamSearchParams={"beamWidth":args["BEAM_WIDTH"], 
                                                                                           "alpha":args["LM_WEIGHT_ALPHA"], 
