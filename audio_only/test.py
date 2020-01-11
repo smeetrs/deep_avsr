@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from config import args
-from models.video_net import VideoNet
+from models.audio_net import AudioNet
 from models.lrs2_char_lm import LRS2CharLM
 from data.lrs2_dataset import LRS2Main
 from data.utils import collate_fn
@@ -21,17 +21,16 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
+stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
 testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                    stepSize=args["STEP_SIZE"], videoParams={"videoFPS":args["VIDEO_FPS"],
-                                                             "roiSize":args["ROI_SIZE"],
-                                                             "normMean":args["NORMALIZATION_MEAN"],
-                                                             "normStd":args["NORMALIZATION_STD"]})
+                    stepSize=args["STEP_SIZE"], stftParams=stftParams)
 testLoader = DataLoader(testData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
-model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                 peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
-                 numClasses=args["NUM_CLASSES"])
+model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
+                 numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
+                 inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
+                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
 model.to(device)
 loss_function = nn.CTCLoss(blank=0, zero_infinity=False)
 

@@ -11,5 +11,5 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
         if file.endswith(".mp4"):
             videoFile = os.path.join(root, file)
             audioFile = os.path.join(root, file[:-4]) + ".wav"
-            v2aCommand = 'ffmpeg -y -v quiet -i ' + videoFile + ' -ac 1 -ar 16000 -vn ' + audioFile
+            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
             os.system(v2aCommand)

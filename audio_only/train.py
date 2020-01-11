@@ -9,7 +9,7 @@ import os, shutil
 
 from config import args
 from models.audio_net import AudioNet
-from data.lrs2_dataset import LRS2Pretrain
+from data.lrs2_dataset import LRS2Main
 from data.utils import collate_fn
 from utils.general import num_params, train, evaluate
 
@@ -26,12 +26,12 @@ torch.backends.cudnn.benchmark = False
 
 
 stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
-pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], stftParams=stftParams)
-pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
-pretrainSize = len(pretrainData) - pretrainValSize
-pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
-pretrainLoader = DataLoader(pretrainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
-pretrainValLoader = DataLoader(pretrainValData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
+trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
+                     stepSize=args["STEP_SIZE"], stftParams=stftParams)
+valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
+                   stepSize=args["STEP_SIZE"], stftParams=stftParams)
+trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
+valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
 
@@ -72,7 +72,7 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
     model.to(device)
-    print("\nLoading Done.\n")    
+    print("Loading Done.\n")    
 
 
 
@@ -82,7 +82,7 @@ trainingWERCurve = list()
 validationWERCurve = list()
 
 
-print("\nPretraining the model .... \n")
+print("\nTraining the model .... \n")
 
 numTotalParams, numTrainableParams = num_params(model)
 print("Number of total parameters in the model = %d" %(numTotalParams))
@@ -94,11 +94,11 @@ valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eos
 
 for step in range(1, args["NUM_STEPS"]+1):
     
-    trainingLoss, trainingCER, trainingWER = train(model, pretrainLoader, optimizer, loss_function, device, trainParams)
+    trainingLoss, trainingCER, trainingWER = train(model, trainLoader, optimizer, loss_function, device, trainParams)
     trainingLossCurve.append(trainingLoss)
     trainingWERCurve.append(trainingWER)
 
-    validationLoss, validationCER, validationWER = evaluate(model, pretrainValLoader, loss_function, device, valParams)
+    validationLoss, validationCER, validationWER = evaluate(model, valLoader, loss_function, device, valParams)
     validationLossCurve.append(validationLoss)
     validationWERCurve.append(validationWER)
 
@@ -110,8 +110,7 @@ for step in range(1, args["NUM_STEPS"]+1):
 
     if (step % args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]):
         
-        savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/pretrain_{:03d}w-step_{:04d}-wer_{:.3f}.pt".format(args["PRETRAIN_NUM_WORDS"], 
-                                                                                                                    step, validationWER)
+        savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/train-step_{:04d}-wer_{:.3f}.pt".format(step, validationWER)
         torch.save(model.state_dict(), savePath)
 
         plt.figure()
@@ -121,7 +120,7 @@ for step in range(1, args["NUM_STEPS"]+1):
         plt.plot(list(range(1, len(trainingLossCurve)+1)), trainingLossCurve, "blue", label="Train")
         plt.plot(list(range(1, len(validationLossCurve)+1)), validationLossCurve, "red", label="Validation")
         plt.legend()
-        plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/pretrain_{:03d}w-step_{:04d}-loss.png".format(args["PRETRAIN_NUM_WORDS"], step))
+        plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/train-step_{:04d}-loss.png".format(step))
         plt.close()
 
         plt.figure()
@@ -131,7 +130,7 @@ for step in range(1, args["NUM_STEPS"]+1):
         plt.plot(list(range(1, len(trainingWERCurve)+1)), trainingWERCurve, "blue", label="Train")
         plt.plot(list(range(1, len(validationWERCurve)+1)), validationWERCurve, "red", label="Validation")
         plt.legend()
-        plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/pretrain_{:03d}w-step_{:04d}-wer.png".format(args["PRETRAIN_NUM_WORDS"], step))
+        plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/train-step_{:04d}-wer.png".format(step))
         plt.close()
 
 
@@ -140,4 +139,4 @@ for step in range(1, args["NUM_STEPS"]+1):
            torch.cuda.empty_cache() 
 
 
-print("\nPretraining Done.\n")
+print("\nTraining Done.\n")

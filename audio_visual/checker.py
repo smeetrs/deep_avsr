@@ -2,11 +2,12 @@ import torch
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+from scipy.io import wavfile
 import os
 
 from config import args
 from models.lrs2_char_lm import LRS2CharLM
-from models.video_net import VideoNet
+from models.av_net import AVNet
 from data.utils import req_input_length, collate_fn
 from data.lrs2_dataset import LRS2Pretrain, LRS2Main
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
@@ -33,41 +34,43 @@ def collate_fn_checker():
     inpLens = [10, 8, 7, 10]
     trgtLens = [4, 6, 7, 10]
     for i in range(len(inpLens)):
-        inp = torch.from_numpy(np.random.rand(inpLens[i], 1, args["ROI_SIZE"], args["ROI_SIZE"]))
-        trgt = torch.from_numpy(np.random.randint(0, args["NUM_CLASSES"], trgtLens[i]))
+        audInp = torch.from_numpy(np.random.rand(4*inpLens[i], args["AUDIO_FEATURE_SIZE"]))
+        vidInp = torch.from_numpy(np.random.rand(inpLens[i], 1, args["ROI_SIZE"], args["ROI_SIZE"]))
+        inp = (audInp,vidInp)
+        trgt = torch.from_numpy(np.random.randint(0,args["NUM_CLASSES"],trgtLens[i]))
         inpLen = torch.tensor(inpLens[i])
         trgtLen = torch.tensor(trgtLens[i])
         data = (inp, trgt, inpLen, trgtLen)
         dataBatch.append(data)
     inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn(dataBatch)
-    print(inputBatch.size(), targetBatch.size(), inputLenBatch.size(), targetLenBatch.size())
+    print((inputBatch[0].size(),inputBatch[1].size()), targetBatch.size(), inputLenBatch.size(), targetLenBatch.size())
     return
 
 
 def lrs2pretrain_checker():
+    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
+                   "normStd":args["NORMALIZATION_STD"]}
     pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
                                 charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                                videoParams={"videoFPS":args["VIDEO_FPS"], 
-                                             "roiSize":args["ROI_SIZE"], 
-                                             "normMean":args["NORMALIZATION_MEAN"], 
-                                             "normStd":args["NORMALIZATION_STD"]})
+                                stftParams=stftParams, videoParams=videoParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
-    print(inp.size(), trgt.size(), inpLen.size(), trgtLen.size())
+    print((inp[0].size(),inp[1].size()), trgt.size(), inpLen.size(), trgtLen.size())
     return
 
 
 def lrs2main_checker():
+    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
+                   "normStd":args["NORMALIZATION_STD"]}
     trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                         stepSize=args["STEP_SIZE"], videoParams={"videoFPS":args["VIDEO_FPS"], 
-                                                                  "roiSize":args["ROI_SIZE"], 
-                                                                  "normMean":args["NORMALIZATION_MEAN"], 
-                                                                  "normStd":args["NORMALIZATION_STD"]})
+                         stepSize=args["STEP_SIZE"], stftParams=stftParams, videoParams=videoParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
-    print(inp.size(), trgt.size(), inpLen.size(), trgtLen.size())
+    print((inp[0].size(),inp[1].size()), trgt.size(), inpLen.size(), trgtLen.size())
     return
 
 
@@ -76,12 +79,19 @@ def lrs2main_max_inplen_checker():
     for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/main"):
         for file in files:
             if file.endswith(".mp4"):
-                videoFile = os.path.join(root, file)
+                audioFile = os.path.join(root, file[:-4]) + ".wav"
+                roiFile = os.path.join(root, file[:-4]) + ".png"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     trgt = f.readline().strip()[7:]
-                captureObj = cv.VideoCapture(videoFile)
-                inpLen = int(captureObj.get(cv.CAP_PROP_FRAME_COUNT))
+                sampFreq, audio = wavfile.read(audioFile)
+                audInpLen = (len(audio) - 640)//160 + 1
+                roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
+                vidInpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                if vidInpLen >= audInpLen/4:
+                    inpLen = vidInpLen
+                else:
+                    inpLen = np.ceil(audInpLen/4)
                 reqLen = req_input_length(trgt)+1
                 if reqLen > inpLen:
                     inpLen = reqLen
@@ -162,7 +172,8 @@ def lrs2pretrain_max_inplen_checker():
         for file in files:
             if file.endswith(".mp4"):
 
-                videoFile = os.path.join(root, file)
+                audioFile = os.path.join(root, file[:-4]) + ".wav"
+                roiFile = os.path.join(root, file[:-4]) + ".png"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     lines = f.readlines()
@@ -174,8 +185,14 @@ def lrs2pretrain_max_inplen_checker():
                     if len(trgt)+1 > 256:
                         print("Max target length reached. Exiting")
                         exit()
-                    captureObj = cv.VideoCapture(videoFile)
-                    inpLen = int(captureObj.get(cv.CAP_PROP_FRAME_COUNT))
+                    sampFreq, audio = wavfile.read(audioFile)
+                    audInpLen = (len(audio) - 640)//160 + 1
+                    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
+                    vidInpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                    if vidInpLen >= audInpLen/4:
+                        inpLen = vidInpLen
+                    else:
+                        inpLen = np.ceil(audInpLen/4)
                     reqLen = req_input_length(trgt)+1
                     if reqLen > inpLen:
                         inpLen = reqLen
@@ -193,14 +210,23 @@ def lrs2pretrain_max_inplen_checker():
                     nWords = nWords[nWordLens > 0]       
                     for ix in range(len(nWords)):
                         trgt = nWords[ix]
-                        videoStartTime = float(lines[4+ix].split(" ")[1])
-                        videoEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
-                        inpLen = int(np.ceil(args["VIDEO_FPS"]*videoEndTime) - np.floor(args["VIDEO_FPS"]*videoStartTime))
+                        startTime = float(lines[4+ix].split(" ")[1])
+                        endTime = float(lines[4+ix+numWords-1].split(" ")[2])
+                        sampFreq, audio = wavfile.read(audioFile)
+                        inputAudio = audio[int(sampFreq*startTime):int(sampFreq*endTime)]
+                        audInpLen = (len(inputAudio) - 640)//160 + 1
+                        if len(inputAudio) < (640 + 3*160):
+                            audInpLen = 4
+                        vidInpLen = int(np.ceil(args["VIDEO_FPS"]*endTime) - np.floor(args["VIDEO_FPS"]*startTime))
+                        if vidInpLen >= audInpLen/4:
+                            inpLen = vidInpLen
+                        else:
+                            inpLen = np.ceil(audInpLen/4)
                         reqLen = req_input_length(trgt)+1
                         if reqLen > inpLen:
                             inpLen = reqLen
                         if inpLen > maxInpLen:
-                            maxInpLen = inpLen                            
+                            maxInpLen = inpLen                      
     print(maxInpLen)
     return
 
@@ -309,14 +335,18 @@ def lrs2charlm_checker():
     return
 
 
-def videonet_checker():
+def avnet_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                     peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
-                     numClasses=args["NUM_CLASSES"])
+    model = AVNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
+                  numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
+                  inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
+                  dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
     model.to(device)
+    T, N, C = 40, args["BATCH_SIZE"], args["AUDIO_FEATURE_SIZE"]
+    audioInputBatch = torch.rand(T, N, C).to(device)
     T, N, C, H, W = 10, args["BATCH_SIZE"], 1, args["ROI_SIZE"], args["ROI_SIZE"]
-    inputBatch = torch.rand(T, N, C, H, W).to(device)
+    videoInputBatch = torch.rand(T, N, C, H, W).to(device)
+    inputBatch = (audioInputBatch,videoInputBatch)
     outputBatch = model(inputBatch)
     print(outputBatch.size())
     return

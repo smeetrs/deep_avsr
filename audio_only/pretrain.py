@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os, shutil
 
 from config import args
-from models.video_net import VideoNet
+from models.audio_net import AudioNet
 from data.lrs2_dataset import LRS2Pretrain
 from data.utils import collate_fn
 from utils.general import num_params, train, evaluate
@@ -25,9 +25,9 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-videoParams={"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-             "normStd":args["NORMALIZATION_STD"]}
-pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
+stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
+                            charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], stftParams=stftParams)
 pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
 pretrainSize = len(pretrainData) - pretrainValSize
 pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
@@ -36,9 +36,10 @@ pretrainValLoader = DataLoader(pretrainValData, batch_size=args["BATCH_SIZE"], c
 
 
 
-model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                 peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
-                 numClasses=args["NUM_CLASSES"])
+model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
+                 numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
+                 inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
+                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"], 

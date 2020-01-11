@@ -1,48 +1,52 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence
 import numpy as np
-from scipy import signal
-from scipy.io import wavfile
+import cv2 as cv
 from scipy.special import softmax
-import sounddevice as sd
-import time
 
 
 
-def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
+def prepare_main_input(roiFile, targetFile, charToIx, videoParams):
     
+    videoFPS = videoParams["videoFPS"]
+    roiSize = videoParams["roiSize"]
+    normMean = videoParams["normMean"]
+    normStd = videoParams["normStd"]
+
+
     with open(targetFile, "r") as f:
         trgt = f.readline().strip()[7:]
-    
-    sampFreq, inputAudio = wavfile.read(audioFile)
-    inputAudio = inputAudio/np.max(inputAudio)
-    inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
-
 
     trgt = [charToIx[char] for char in trgt]
     trgt.append(charToIx["<EOS>"])
     trgt = np.array(trgt)
     trgtLen = len(trgt)
 
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]    
-    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
-                                 noverlap=sampFreq*stftOverlap, boundary=None, padded=False)
-    inp = np.abs(stftVals)
-    inp = inp.T
+    if trgtLen > 256:
+        print("Max target length reached. Exiting")
+        exit()
 
+
+    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
+    roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
+    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
+    inp = np.dstack(roiSequence)
+    inp = np.transpose(inp, (2,0,1))
+    inp = inp.reshape((inp.shape[0],1,inp.shape[1],inp.shape[2]))
+    inp = inp/255
+    inp = (inp - normMean)/normStd
 
     reqInpLen = req_input_length(trgt)
-    if int(len(inp)/4) < reqInpLen:
+    if len(inp) < reqInpLen:
         indices = np.arange(len(inp))
         np.random.shuffle(indices)
-        repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
-        extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
+        repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
+        extras = (reqInpLen - len(inp)) % len(inp)
         newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
         inp = inp[newIndices]
 
-    inpLen = int(len(inp)/4)
+    inpLen = len(inp)
+
 
     inp = torch.from_numpy(inp)
     trgt = torch.from_numpy(trgt)
@@ -53,8 +57,14 @@ def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
 
 
 
-def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams):
+def prepare_pretrain_input(roiFile, targetFile, numWords, charToIx, videoParams):
     
+    videoFPS = videoParams["videoFPS"]
+    roiSize = videoParams["roiSize"]
+    normMean = videoParams["normMean"]
+    normStd = videoParams["normStd"]
+
+
     with open(targetFile, "r") as f:
         lines = f.readlines()
     lines = [line.strip() for line in lines]
@@ -68,7 +78,8 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
         if len(trgtNWord)+1 > 256:
             print("Max target length reached. Exiting")
             exit()
-        sampFreq, inputAudio = wavfile.read(audioFile)
+        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
+        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
 
     else:
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
@@ -81,44 +92,37 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
         ix = np.random.choice(np.arange(len(nWordLens)), p=softmax(nWordLens))
         trgtNWord = nWords[ix]
 
-        audioStartTime = float(lines[4+ix].split(" ")[1])
-        audioEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
-        sampFreq, audio = wavfile.read(audioFile)
-        inputAudio = audio[int(sampFreq*audioStartTime):int(sampFreq*audioEndTime)]
+        videoStartTime = float(lines[4+ix].split(" ")[1])
+        videoEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
+        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
+        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
+        roiSequence = roiSequence[int(np.floor(videoFPS*videoStartTime)):int(np.ceil(videoFPS*videoEndTime))]
 
-    inputAudio = inputAudio/np.max(inputAudio)
-
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]
-    if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
-        padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
-        inputAudio = np.pad(inputAudio, padding, "constant")
     
-    inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
-
-
     trgt = [charToIx[char] for char in trgtNWord]
     trgt.append(charToIx["<EOS>"])
     trgt = np.array(trgt)
     trgtLen = len(trgt)
 
 
-    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
-                                 noverlap=sampFreq*stftOverlap, boundary=None, padded=False)
-    inp = np.abs(stftVals)
-    inp = inp.T
+    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
+    inp = np.dstack(roiSequence)
+    inp = np.transpose(inp, (2,0,1))
+    inp = inp.reshape((inp.shape[0],1,inp.shape[1],inp.shape[2]))
+    inp = inp/255
+    inp = (inp - normMean)/normStd
 
     reqInpLen = req_input_length(trgt)
-    if int(len(inp)/4) < reqInpLen:
+    if len(inp) < reqInpLen:
         indices = np.arange(len(inp))
         np.random.shuffle(indices)
-        repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
-        extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
+        repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
+        extras = (reqInpLen - len(inp)) % len(inp)
         newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
         inp = inp[newIndices]
 
-    inpLen = int(len(inp)/4)
+    inpLen = len(inp)
+    
 
     inp = torch.from_numpy(inp)
     trgt = torch.from_numpy(trgt)

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os, shutil
 
 from config import args
-from models.audio_net import AudioNet
+from models.av_net import AVNet
 from data.lrs2_dataset import LRS2Main
 from data.utils import collate_fn
 from utils.general import num_params, train, evaluate
@@ -25,23 +25,22 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
+stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+videoParams={"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
+             "normStd":args["NORMALIZATION_STD"]}
 trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                     stepSize=args["STEP_SIZE"], stftParams={"window":args["STFT_WINDOW"], 
-                                                             "winLen":args["STFT_WIN_LENGTH"], 
-                                                             "overlap":args["STFT_OVERLAP"]})
+                     stepSize=args["STEP_SIZE"], stftParams=stftParams, videoParams=videoParams)
 valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                   stepSize=args["STEP_SIZE"], stftParams={"window":args["STFT_WINDOW"], 
-                                                           "winLen":args["STFT_WIN_LENGTH"], 
-                                                           "overlap":args["STFT_OVERLAP"]})
+                   stepSize=args["STEP_SIZE"], stftParams=stftParams, videoParams=videoParams)
 trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
 
-model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
-                 numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
-                 inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-                 dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+model = AVNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
+              numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
+              inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
+              dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"], 

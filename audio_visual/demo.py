@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import cv2 as cv
 import os
 
 from config import args
-from models.video_net import VideoNet
+from models.av_net import AVNet
 from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
@@ -23,9 +22,10 @@ print("Trained Model File: %s\n" %(args["TRAINED_MODEL_FILE"]))
 print("Demo Directory: %s\n\n" %(args["CODE_DIRECTORY"] + "/demo"))
 
 
-model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                 peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
-                 numClasses=args["NUM_CLASSES"])
+model = AVNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
+              numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
+              inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
+              dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
 model.to(device)
 model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["TRAINED_MODEL_FILE"]))
 model.to(device)
@@ -36,8 +36,12 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
     for file in files:
         if file.endswith(".mp4"):
             videoFile = os.path.join(root, file)
+            audioFile = os.path.join(root, file[:-4]) + ".wav"
             roiFile = os.path.join(root, file[:-4]) + ".png"
             targetFile = os.path.join(root, file[:-4]) + ".txt"
+
+            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
+            os.system(v2aCommand)
             
             roiSize = args["ROI_SIZE"]
             captureObj = cv.VideoCapture(videoFile)
@@ -55,12 +59,15 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
             cv.imwrite(roiFile, roiSequence)
 
 
+            stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
             videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                            "normStd":args["NORMALIZATION_STD"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(roiFile, targetFile, args["CHAR_TO_INDEX"], videoParams)
+            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], 
+                                                            stftParams, videoParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
-            inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)
+            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), 
+                                      (targetBatch.int()).to(device)
             inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
             with torch.no_grad():
                 outputBatch = model(inputBatch)
@@ -75,12 +82,11 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                     lm.to(device)
                 else:
                     lm = None
-                
+
+                beamSearchParams={"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"], 
+                                  "threshProb":args["THRESH_PROBABILITY"]}  
                 predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
-                                                                        beamSearchParams={"beamWidth":args["BEAM_WIDTH"], 
-                                                                                          "alpha":args["LM_WEIGHT_ALPHA"], 
-                                                                                          "beta":args["LENGTH_PENALTY_BETA"],
-                                                                                          "threshProb":args["THRESH_PROBABILITY"]},  
+                                                                        beamSearchParams=beamSearchParams,  
                                                                         spaceIx=args["CHAR_TO_INDEX"][" "],
                                                                         eosIx=args["CHAR_TO_INDEX"]["<EOS>"], 
                                                                         lm=lm)
