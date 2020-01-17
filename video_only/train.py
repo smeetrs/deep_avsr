@@ -37,7 +37,7 @@ valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collat
 
 
 model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                 peMaxLen=args["PE_MAX_LENGTH"],  fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
+                 peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
                  numClasses=args["NUM_CLASSES"])
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
