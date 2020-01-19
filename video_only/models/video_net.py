@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-from .visual_frontend import VisualFrontend
-
 
 
 class PositionalEncoding(nn.Module):
@@ -29,7 +27,6 @@ class VideoNet(nn.Module):
 
     def __init__(self, dModel, nHeads, numLayers, peMaxLen, fcHiddenSize, dropout, numClasses):
         super(VideoNet, self).__init__()
-        self.frontend = VisualFrontend()
         self.positionalEncoding = PositionalEncoding(dModel=dModel, maxLen=peMaxLen)
         encoderLayer = nn.TransformerEncoderLayer(d_model=dModel, nhead=nHeads, dim_feedforward=fcHiddenSize, dropout=dropout)
         self.videoEncoder = nn.TransformerEncoder(encoderLayer, num_layers=numLayers)
@@ -38,10 +35,7 @@ class VideoNet(nn.Module):
         return
 
     def forward(self, inputBatch):
-        inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
-        batch = self.frontend(inputBatch)
-        batch = batch.transpose(1, 2).transpose(0, 1)
-        batch = self.positionalEncoding(batch)
+        batch = self.positionalEncoding(inputBatch)
         batch = self.videoEncoder(batch)
         batch = self.videoDecoder(batch)
         batch = batch.transpose(0, 1).transpose(1, 2)

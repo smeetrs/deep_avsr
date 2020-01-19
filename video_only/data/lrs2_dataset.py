@@ -26,9 +26,9 @@ class LRS2Pretrain(Dataset):
         ixs = ixs[ixs < len(self.datalist)]
         index = np.random.choice(ixs)
         
-        roiFile = self.datalist[index] + ".png"
+        visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(roiFile, targetFile, self.numWords, self.charToIx, self.videoParams)
+        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(visualFeaturesFile, targetFile, self.numWords, self.charToIx, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 
@@ -59,9 +59,9 @@ class LRS2Main(Dataset):
             ixs = ixs[ixs < len(self.datalist)]
             index = np.random.choice(ixs)
 
-        roiFile = self.datalist[index] + ".png"
+        visualFeaturesFile = self.datalist[index] + ".png"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(roiFile, targetFile, self.charToIx, self.videoParams)
+        inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, self.charToIx, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 

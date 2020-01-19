@@ -25,8 +25,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-videoParams={"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-             "normStd":args["NORMALIZATION_STD"]}
+videoParams={"videoFPS":args["VIDEO_FPS"]}
 trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
                      stepSize=args["STEP_SIZE"], videoParams=videoParams)
 valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 

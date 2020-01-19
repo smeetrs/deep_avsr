@@ -6,13 +6,10 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(roiFile, targetFile, charToIx, videoParams):
+def prepare_main_input(visualFeaturesFile, targetFile, charToIx, videoParams):
     
     videoFPS = videoParams["videoFPS"]
-    roiSize = videoParams["roiSize"]
-    normMean = videoParams["normMean"]
-    normStd = videoParams["normStd"]
-
+    
 
     with open(targetFile, "r") as f:
         trgt = f.readline().strip()[7:]
@@ -27,14 +24,7 @@ def prepare_main_input(roiFile, targetFile, charToIx, videoParams):
         exit()
 
 
-    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-    roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
-    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-    inp = np.dstack(roiSequence)
-    inp = np.transpose(inp, (2,0,1))
-    inp = inp.reshape((inp.shape[0],1,inp.shape[1],inp.shape[2]))
-    inp = inp/255
-    inp = (inp - normMean)/normStd
+    inp = np.load(visualFeaturesFile)
 
     reqInpLen = req_input_length(trgt)
     if len(inp) < reqInpLen:
@@ -57,13 +47,10 @@ def prepare_main_input(roiFile, targetFile, charToIx, videoParams):
 
 
 
-def prepare_pretrain_input(roiFile, targetFile, numWords, charToIx, videoParams):
+def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, videoParams):
     
     videoFPS = videoParams["videoFPS"]
-    roiSize = videoParams["roiSize"]
-    normMean = videoParams["normMean"]
-    normStd = videoParams["normStd"]
-
+    
 
     with open(targetFile, "r") as f:
         lines = f.readlines()
@@ -78,8 +65,7 @@ def prepare_pretrain_input(roiFile, targetFile, numWords, charToIx, videoParams)
         if len(trgtNWord)+1 > 256:
             print("Max target length reached. Exiting")
             exit()
-        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
+        inp = np.load(visualFeaturesFile)
 
     else:
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
@@ -94,23 +80,15 @@ def prepare_pretrain_input(roiFile, targetFile, numWords, charToIx, videoParams)
 
         videoStartTime = float(lines[4+ix].split(" ")[1])
         videoEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
-        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
-        roiSequence = roiSequence[int(np.floor(videoFPS*videoStartTime)):int(np.ceil(videoFPS*videoEndTime))]
+        inp = np.load(visualFeaturesFile)
+        inp = inp[int(np.floor(videoFPS*videoStartTime)):int(np.ceil(videoFPS*videoEndTime))]
 
     
     trgt = [charToIx[char] for char in trgtNWord]
     trgt.append(charToIx["<EOS>"])
     trgt = np.array(trgt)
     trgtLen = len(trgt)
-
-
-    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-    inp = np.dstack(roiSequence)
-    inp = np.transpose(inp, (2,0,1))
-    inp = inp.reshape((inp.shape[0],1,inp.shape[1],inp.shape[2]))
-    inp = inp/255
-    inp = (inp - normMean)/normStd
+    
 
     reqInpLen = req_input_length(trgt)
     if len(inp) < reqInpLen:

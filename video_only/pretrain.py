@@ -25,8 +25,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-videoParams={"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-             "normStd":args["NORMALIZATION_STD"]}
+videoParams={"videoFPS":args["VIDEO_FPS"]}
 pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
                             charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
 pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
@@ -73,9 +72,6 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
     model.to(device)
-    for name, param in model.frontend.named_parameters():
-        if ("bn2" not in name) and ("downsample.1" not in name):
-            param.requires_grad = False
     print("\nLoading Done.\n")    
 
 

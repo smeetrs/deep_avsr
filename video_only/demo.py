@@ -6,6 +6,7 @@ import os
 
 from config import args
 from models.video_net import VideoNet
+from models.visual_frontend import VisualFrontend
 from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
@@ -32,32 +33,55 @@ model.to(device)
 model.eval()
 
 
+vf = VisualFrontend().to(device)
+vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
+vf.to(device)
+vf.eval()
+
+
 for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
     for file in files:
         if file.endswith(".mp4"):
             videoFile = os.path.join(root, file)
             roiFile = os.path.join(root, file[:-4]) + ".png"
+            visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
             targetFile = os.path.join(root, file[:-4]) + ".txt"
             
             roiSize = args["ROI_SIZE"]
+            normMean = args["NORMALIZATION_MEAN"]
+            normStd = args["NORMALIZATION_STD"]
+
             captureObj = cv.VideoCapture(videoFile)
-            roiSequence = np.empty((roiSize,0), dtype=np.int)
+            roiSequence = list()
             while (captureObj.isOpened()):
                 ret, frame = captureObj.read()
                 if ret == True:
                     frame = cv.resize(frame, (224,224), interpolation=cv.INTER_CUBIC)
                     grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                     roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
-                    roiSequence = np.hstack((roiSequence, roi))
+                    roiSequence.append(roi)
                 else:
                     break
             captureObj.release()
-            cv.imwrite(roiFile, roiSequence)
+            cv.imwrite(roiFile, np.hstack(roiSequence))
+            
+            roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
+            inp = np.dstack(roiSequence)
+            inp = np.transpose(inp, (2,0,1))
+            inp = inp.reshape((inp.shape[0],1,1,inp.shape[1],inp.shape[2]))
+            inp = inp/255
+            inp = (inp - normMean)/normStd
+            inputBatch = torch.from_numpy(inp)
+            inputBatch = (inputBatch.float()).to(device)
+            with torch.no_grad():
+                outputBatch = vf(inputBatch)
+            out = outputBatch.view(outputBatch.size(0), outputBatch.size(2))
+            out = out.cpu().numpy()
+            np.save(visualFeaturesFile, out)
+            
 
-
-            videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-                           "normStd":args["NORMALIZATION_STD"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(roiFile, targetFile, args["CHAR_TO_INDEX"], videoParams)
+            videoParams = {"videoFPS":args["VIDEO_FPS"]}
+            inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, args["CHAR_TO_INDEX"], videoParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
             inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)

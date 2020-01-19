@@ -7,6 +7,7 @@ import os
 from config import args
 from models.lrs2_char_lm import LRS2CharLM
 from models.video_net import VideoNet
+from models.visual_frontend import VisualFrontend
 from data.utils import req_input_length, collate_fn
 from data.lrs2_dataset import LRS2Pretrain, LRS2Main
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
@@ -45,8 +46,7 @@ def collate_fn_checker():
 
 
 def lrs2pretrain_checker():
-    videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-                   "normStd":args["NORMALIZATION_STD"]}
+    videoParams = {"videoFPS":args["VIDEO_FPS"]}
     pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
                                 charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
                                 videoParams=videoParams)
@@ -58,8 +58,7 @@ def lrs2pretrain_checker():
 
 
 def lrs2main_checker():
-    videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-                   "normStd":args["NORMALIZATION_STD"]}
+    videoParams = {"videoFPS":args["VIDEO_FPS"]}
     trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
                          stepSize=args["STEP_SIZE"], videoParams=videoParams)
     numSamples = len(trainData)
@@ -313,9 +312,24 @@ def videonet_checker():
                      peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
                      numClasses=args["NUM_CLASSES"])
     model.to(device)
+    model.eval()
+    T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"] 
+    inputBatch = torch.rand(T, N, C).to(device)
+    with torch.no_grad():
+        outputBatch = model(inputBatch)
+    print(outputBatch.size())
+    return
+
+
+def visualfrontend_checker():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = VisualFrontend().to(device)
+    model.to(device)
+    model.eval()
     T, N, C, H, W = 10, args["BATCH_SIZE"], 1, args["ROI_SIZE"], args["ROI_SIZE"]
     inputBatch = torch.rand(T, N, C, H, W).to(device)
-    outputBatch = model(inputBatch)
+    with torch.no_grad():
+        outputBatch = model(inputBatch)
     print(outputBatch.size())
     return
 

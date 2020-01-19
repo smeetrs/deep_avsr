@@ -317,9 +317,11 @@ def audionet_checker():
                      inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
                      dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
     model.to(device)
+    model.eval()
     T, N, C = 42, args["BATCH_SIZE"], args["AUDIO_FEATURE_SIZE"]
     inputBatch = torch.rand(T, N, C).to(device)
-    outputBatch = model(inputBatch)
+    with torch.no_grad():
+        outputBatch = model(inputBatch)
     print(outputBatch.size())
     return
 
