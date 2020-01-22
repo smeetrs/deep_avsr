@@ -59,7 +59,7 @@ class LRS2Main(Dataset):
             ixs = ixs[ixs < len(self.datalist)]
             index = np.random.choice(ixs)
 
-        visualFeaturesFile = self.datalist[index] + ".png"
+        visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
         inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, self.charToIx, self.videoParams)
         return inp, trgt, inpLen, trgtLen
