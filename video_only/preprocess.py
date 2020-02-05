@@ -28,8 +28,9 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
             while (captureObj.isOpened()):
                 ret, frame = captureObj.read()
                 if ret == True:
-                    frame = cv.resize(frame, (224,224), interpolation=cv.INTER_CUBIC)
                     grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+                    grayed = grayed/255
+                    grayed = cv.resize(grayed, (224,224))
                     roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
                     roiSequence.append(roi)
                 else:
@@ -43,7 +44,6 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
             inp = np.dstack(roiSequence)
             inp = np.transpose(inp, (2,0,1))
             inp = inp.reshape((inp.shape[0],1,1,inp.shape[1],inp.shape[2]))
-            inp = inp/255
             inp = (inp - normMean)/normStd
             inputBatch = torch.from_numpy(inp)
             inputBatch = (inputBatch.float()).to(device)

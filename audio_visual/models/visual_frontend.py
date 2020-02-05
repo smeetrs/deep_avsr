@@ -12,20 +12,20 @@ class BasicBlock(nn.Module):
     def __init__(self, inplanes, outplanes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(outplanes)
+        self.bn1 = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
         self.conv2 = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(outplanes)
         self.downsample = downsample
+        self.outbn = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
 
     def forward(self, inputBatch):
         batch = F.relu(self.bn1(self.conv1(inputBatch)))
-        batch = self.bn2(self.conv2(batch))
+        batch = self.conv2(batch)
         if self.downsample is not None:
             residualBatch = self.downsample(inputBatch)
         else:
             residualBatch = inputBatch
         batch = batch + residualBatch
-        outputBatch = F.relu(batch)
+        outputBatch = F.relu(self.outbn(batch))
         return outputBatch
 
 
@@ -48,10 +48,7 @@ class ResNet(nn.Module):
     def _make_layer(self, block, outplanes, reps, stride):
         downsample = None
         if stride != 1 or self.inplanes != outplanes*block.expansion:
-            downsample = nn.Sequential(
-                            nn.Conv2d(self.inplanes, outplanes*block.expansion, kernel_size=(1,1), stride=stride, bias=False),
-                            nn.BatchNorm2d(outplanes*block.expansion)
-                        )
+            downsample = nn.Conv2d(self.inplanes, outplanes*block.expansion, kernel_size=(1,1), stride=stride, bias=False)
 
         layers = []
         layers.append(block(self.inplanes, outplanes, stride, downsample))
@@ -90,7 +87,7 @@ class VisualFrontend(nn.Module):
         super(VisualFrontend, self).__init__()
         self.frontend3D = nn.Sequential(
                             nn.Conv3d(1, 64, kernel_size=(5,7,7), stride=(1,2,2), padding=(2,3,3), bias=False),
-                            nn.BatchNorm3d(64),
+                            nn.BatchNorm3d(64, momentum=0.01, eps=0.001),
                             nn.ReLU(),
                             nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
                         )
@@ -99,6 +96,7 @@ class VisualFrontend(nn.Module):
 
 
     def forward(self, inputBatch):
+        inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
         batchsize = inputBatch.size(0)
         batch = self.frontend3D(inputBatch)
 
@@ -107,5 +105,6 @@ class VisualFrontend(nn.Module):
         outputBatch = self.resnet(batch)
         outputBatch = outputBatch.view(batchsize, -1, 512)
         outputBatch = outputBatch.transpose(1 ,2)
+        outputBatch = outputBatch.transpose(1, 2).transpose(0, 1)
         return outputBatch
         

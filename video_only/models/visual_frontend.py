@@ -12,10 +12,10 @@ class BasicBlock(nn.Module):
     def __init__(self, inplanes, outplanes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(outplanes)
+        self.bn1 = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
         self.conv2 = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.downsample = downsample
-        self.outbn = nn.BatchNorm2d(outplanes)
+        self.outbn = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
 
     def forward(self, inputBatch):
         batch = F.relu(self.bn1(self.conv1(inputBatch)))
@@ -87,7 +87,7 @@ class VisualFrontend(nn.Module):
         super(VisualFrontend, self).__init__()
         self.frontend3D = nn.Sequential(
                             nn.Conv3d(1, 64, kernel_size=(5,7,7), stride=(1,2,2), padding=(2,3,3), bias=False),
-                            nn.BatchNorm3d(64),
+                            nn.BatchNorm3d(64, momentum=0.01, eps=0.001),
                             nn.ReLU(),
                             nn.MaxPool3d(kernel_size=(1,3,3), stride=(1,2,2), padding=(0,1,1))
                         )
