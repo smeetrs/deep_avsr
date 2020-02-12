@@ -6,67 +6,53 @@ import numpy as np
 
 
 
-class BasicBlock(nn.Module):
-    expansion = 1
+class ResNetLayer(nn.Module):
 
-    def __init__(self, inplanes, outplanes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
-        self.conv2 = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.downsample = downsample
-        self.outbn = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
+    def __init__(self, inplanes, outplanes, stride):
+        super(ResNetLayer, self).__init__()
+        self.conv1a = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1a = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
+        self.conv2a = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.stride = stride
+        self.downsample = nn.Conv2d(inplanes, outplanes, kernel_size=(1,1), stride=stride, bias=False)
+        self.outbna = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
+
+        self.conv1b = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1b = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
+        self.conv2b = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.outbnb = nn.BatchNorm2d(outplanes, momentum=0.01, eps=0.001)
+        return
+
 
     def forward(self, inputBatch):
-        batch = F.relu(self.bn1(self.conv1(inputBatch)))
-        batch = self.conv2(batch)
-        if self.downsample is not None:
-            residualBatch = self.downsample(inputBatch)
-        else:
+        batch = F.relu(self.bn1a(self.conv1a(inputBatch)))
+        batch = self.conv2a(batch)
+        if self.stride == 1:
             residualBatch = inputBatch
+        else:
+            residualBatch = self.downsample(inputBatch)
         batch = batch + residualBatch
-        outputBatch = F.relu(self.outbn(batch))
-        return outputBatch
+        intermediateBatch = batch
+        batch = F.relu(self.outbna(batch))
 
+        batch = F.relu(self.bn1b(self.conv1b(batch)))
+        batch = self.conv2b(batch)
+        residualBatch = intermediateBatch
+        batch = batch + residualBatch
+        outputBatch = F.relu(self.outbnb(batch))
+        return outputBatch
 
 
 
 class ResNet(nn.Module):
 
-    def __init__(self, repetitions=[2,2,2,2]):
+    def __init__(self):
         super(ResNet, self).__init__()
-        self.inplanes = 64
-        self.layer1 = self._make_layer(BasicBlock, 64, repetitions[0], stride=1)
-        self.layer2 = self._make_layer(BasicBlock, 128, repetitions[1], stride=2)
-        self.layer3 = self._make_layer(BasicBlock, 256, repetitions[2], stride=2)
-        self.layer4 = self._make_layer(BasicBlock, 512, repetitions[3], stride=2)
+        self.layer1 = ResNetLayer(64, 64, stride=1)
+        self.layer2 = ResNetLayer(64, 128, stride=2)
+        self.layer3 = ResNetLayer(128, 256, stride=2)
+        self.layer4 = ResNetLayer(256, 512, stride=2)
         self.avgpool = nn.AvgPool2d(kernel_size=(4,4), stride=(1,1))
-        self.weights_init()
-        return
-            
-        
-    def _make_layer(self, block, outplanes, reps, stride):
-        downsample = None
-        if stride != 1 or self.inplanes != outplanes*block.expansion:
-            downsample = nn.Conv2d(self.inplanes, outplanes*block.expansion, kernel_size=(1,1), stride=stride, bias=False)
-
-        layers = []
-        layers.append(block(self.inplanes, outplanes, stride, downsample))
-        self.inplanes = outplanes*block.expansion
-        for i in range(reps-1):
-            layers.append(block(self.inplanes, outplanes))
-
-        return nn.Sequential(*layers)
-
-
-    def weights_init(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0]*m.kernel_size[1]*m.out_channels
-                m.weight.data.normal_(0, np.sqrt(2/n))
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
         return
 
 
@@ -77,7 +63,6 @@ class ResNet(nn.Module):
         batch = self.layer4(batch)
         outputBatch = self.avgpool(batch)
         return outputBatch
-
 
 
 
@@ -107,4 +92,3 @@ class VisualFrontend(nn.Module):
         outputBatch = outputBatch.transpose(1 ,2)
         outputBatch = outputBatch.transpose(1, 2).transpose(0, 1)
         return outputBatch
-        
