@@ -102,7 +102,7 @@ for step in range(1, args["NUM_STEPS"]+1):
     validationLossCurve.append(validationLoss)
     validationWERCurve.append(validationWER)
 
-    scheduler.step(validationWER)
+    scheduler.step(validationCER)
 
     print("Step: %d || Tr.Loss: %.6f || Val.Loss: %.6f || Tr.CER: %.3f || Val.CER: %.3f || Tr.WER: %.3f || Val.WER: %.3f" 
           %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
