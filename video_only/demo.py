@@ -64,7 +64,7 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
                 else:
                     break
             captureObj.release()
-            cv.imwrite(roiFile, np.hstack(roiSequence))
+            cv.imwrite(roiFile, np.floor(255*np.hstack(roiSequence)).astype(np.int))
             
             roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
             inp = np.dstack(roiSequence)
