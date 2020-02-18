@@ -10,6 +10,7 @@ from models.visual_frontend import VisualFrontend
 roiSize = args["ROI_SIZE"]
 normMean = args["NORMALIZATION_MEAN"]
 normStd = args["NORMALIZATION_STD"]
+augShift = args["AUGMENT_SHIFT"]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 vf = VisualFrontend().to(device)
 vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
@@ -31,7 +32,8 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
                     grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                     grayed = grayed/255
                     grayed = cv.resize(grayed, (224,224))
-                    roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
+                    roi = grayed[int(112-(roiSize/2)-augShift):int(112+(roiSize/2)+augShift), 
+                                 int(112-(roiSize/2)-augShift):int(112+(roiSize/2)+augShift)]
                     roiSequence.append(roi)
                 else:
                     break
@@ -39,18 +41,26 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
             captureObj.release()
             cv.imwrite(roiFile, np.floor(255*np.hstack(roiSequence)).astype(np.int))
             
-            
-            roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-            inp = np.dstack(roiSequence)
-            inp = np.transpose(inp, (2,0,1))
-            inp = inp.reshape((inp.shape[0],1,1,inp.shape[1],inp.shape[2]))
+            inp = list()
+            for roi in roiSequence:
+                augmentations = list()
+                aug = roi[int((roi.shape[0]/2)-(roiSize/2)):int((roi.shape[0]/2)+(roiSize/2)), 
+                          int((roi.shape[1]/2)-(roiSize/2)):int((roi.shape[1]/2)+(roiSize/2))]
+                augmentations.extend([aug, aug[:,::-1]])
+                for i in [-1,1]:
+                    for j in [-1,1]:
+                        aug = roi[int((roi.shape[0]/2)-(roiSize/2)+(augShift*i)):int((roi.shape[0]/2)+(roiSize/2)+(augShift*i)), 
+                                  int((roi.shape[1]/2)-(roiSize/2)+(augShift*j)):int((roi.shape[1]/2)+(roiSize/2)+(augShift*j))]
+                        augmentations.extend([aug, aug[:,::-1]])
+                inp.append(np.stack(augmentations, axis=0))
+            inp = np.stack(inp, axis=0)
+            inp = np.expand_dims(inp, axis=2)
             inp = (inp - normMean)/normStd
             inputBatch = torch.from_numpy(inp)
             inputBatch = (inputBatch.float()).to(device)
             with torch.no_grad():
                 outputBatch = vf(inputBatch)
-            out = outputBatch.view(outputBatch.size(0), outputBatch.size(2))
-            out = out.cpu().numpy()
+            out = outputBatch.cpu().numpy()
             np.save(visualFeaturesFile, out)
             
             
