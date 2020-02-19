@@ -1,6 +1,4 @@
 import numpy as np
-from scipy import signal
-from scipy.io import wavfile
 import os
 
 from config import args

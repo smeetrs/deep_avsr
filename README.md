@@ -10,5 +10,5 @@ The repository contains a PyTorch reproduction of the [Deep Audio-Visual Speech 
 - commenting the code (do it last since editing the comments is a PITA)
 - noisy audio in av training
 - deleting all wav and png files from dataset at last
-- trying test time augmentation
-- noisy training (audio/video/both) at the end if needed
+- noisy training (audio/video/both) and data augmentation at the end if needed
+- using np.squeeze, np.expand_dims, np.stack, np.concatenate
