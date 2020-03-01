@@ -29,7 +29,7 @@ def prepare_main_input(audioFile, targetFile, charToIx, audioParams):
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    inputAudio = inputAudio/np.max(inputAudio)
+    inputAudio = inputAudio/np.max(np.abs(inputAudio))
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
             
     _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
@@ -104,7 +104,7 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, audioParam
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    inputAudio = inputAudio/np.max(inputAudio)
+    inputAudio = inputAudio/np.max(np.abs(inputAudio))
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
     _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 

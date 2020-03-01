@@ -33,11 +33,11 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, charToI
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    inputAudio = inputAudio/np.max(inputAudio)
+    inputAudio = inputAudio/np.max(np.abs(inputAudio))
     if noise is not None:
         pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
         noise = noise[pos:pos+len(inputAudio)]
-        noise = noise/np.max(noise)
+        noise = noise/np.max(np.abs(noise))
         gain = 10**(noiseSNR/10)
         noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
         inputAudio = inputAudio + noise
@@ -141,11 +141,11 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    inputAudio = inputAudio/np.max(inputAudio)
+    inputAudio = inputAudio/np.max(np.abs(inputAudio))
     if noise is not None:
         pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
         noise = noise[pos:pos+len(inputAudio)]
-        noise = noise/np.max(noise)
+        noise = noise/np.max(np.abs(noise))
         gain = 10**(noiseSNR/10)
         noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
         inputAudio = inputAudio + noise
