@@ -12,6 +12,7 @@ from data.utils import req_input_length, collate_fn
 from data.lrs2_dataset import LRS2Pretrain, LRS2Main
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
 from utils.metrics import compute_cer, compute_wer
+from utils.preprocessing import preprocess_sample
 
 
 def req_input_length_checker():
@@ -41,30 +42,30 @@ def collate_fn_checker():
         data = (inp, trgt, inpLen, trgtLen)
         dataBatch.append(data)
     inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn(dataBatch)
-    print(inputBatch.size(), targetBatch.size(), inputLenBatch.size(), targetLenBatch.size())
+    print(inputBatch.shape, targetBatch.shape, inputLenBatch.shape, targetLenBatch.shape)
     return
 
 
 def lrs2pretrain_checker():
-    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
                                 charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                                stftParams=stftParams)
+                                audioParams=audioParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
-    print(inp.size(), trgt.size(), inpLen.size(), trgtLen.size())
+    print(inp.shape, trgt.shape, inpLen.shape, trgtLen.shape)
     return
 
 
 def lrs2main_checker():
-    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                         stepSize=args["STEP_SIZE"], stftParams=stftParams)
+                         stepSize=args["STEP_SIZE"], audioParams=audioParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
-    print(inp.size(), trgt.size(), inpLen.size(), trgtLen.size())
+    print(inp.shape, trgt.shape, inpLen.shape, trgtLen.shape)
     return
 
 
@@ -291,13 +292,13 @@ def lrs2charlm_checker():
     initStateBatch = None
     string = list()
     for i in range(100):
-        inputBatch = inp.view(1,1)
+        inputBatch = inp.reshape(1,1)
         inputBatch = inputBatch.to(device)
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
         
         outputBatch = torch.exp(outputBatch)
-        out = outputBatch.view(outputBatch.size(2))
+        out = outputBatch.squeeze()
         probs = out.tolist()
         ix = np.random.choice(np.arange(len(probs)), p=probs/np.sum(probs))
         char = args["INDEX_TO_CHAR"][ix+1]
@@ -322,7 +323,7 @@ def audionet_checker():
     inputBatch = torch.rand(T, N, C).to(device)
     with torch.no_grad():
         outputBatch = model(inputBatch)
-    print(outputBatch.size())
+    print(outputBatch.shape)
     return
 
 
@@ -401,6 +402,12 @@ def compute_cer_checker():
     targetLenBatch = torch.tensor(trgtLens)
 
     print(compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch))
+    return
+
+
+def preprocess_sample_checker():
+    file = args["CODE_DIRECTORY"] + "/demo/00001"
+    preprocess_sample(file)
     return
 
 

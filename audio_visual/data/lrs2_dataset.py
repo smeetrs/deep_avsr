@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset
+from scipy.io import wavfile
 import numpy as np
 
 from .utils import prepare_pretrain_input
@@ -8,7 +9,7 @@ from .utils import prepare_main_input
 
 class LRS2Pretrain(Dataset):
     
-    def __init__(self, datadir, numWords, charToIx, stepSize, stftParams, videoParams):
+    def __init__(self, datadir, numWords, charToIx, stepSize, audioParams, videoParams, noiseParams):
         super(LRS2Pretrain, self).__init__()
         with open(datadir + "/pretrain.txt", "r") as f:
             lines = f.readlines()
@@ -16,8 +17,11 @@ class LRS2Pretrain(Dataset):
         self.numWords = numWords
         self.charToIx = charToIx
         self.stepSize = stepSize
-        self.stftParams = stftParams
+        self.audioParams = audioParams
         self.videoParams = videoParams
+        _, self.noise = wavfile.read(noiseParams["noiseFile"])
+        self.noiseProb = noiseParams["noiseProb"]
+        self.noiseSNR = noiseParams["noiseSNR"]
         return
         
 
@@ -28,10 +32,14 @@ class LRS2Pretrain(Dataset):
         index = np.random.choice(ixs)
         
         audioFile = self.datalist[index] + ".wav"
-        roiFile = self.datalist[index] + ".png"
+        visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, roiFile, targetFile, self.numWords, self.charToIx, 
-                                                            self.stftParams, self.videoParams)
+        if np.random.choice([True, False], p=[self.noiseProb, 1-self.noiseProb]):
+            noise = self.noise
+        else:
+            noise = None
+        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, self.numWords, 
+                                                            self.charToIx, self.noiseSNR, self.audioParams, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 
@@ -43,7 +51,7 @@ class LRS2Pretrain(Dataset):
 
 class LRS2Main(Dataset):
     
-    def __init__(self, dataset, datadir, charToIx, stepSize, stftParams, videoParams):
+    def __init__(self, dataset, datadir, charToIx, stepSize, audioParams, videoParams, noiseParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
             lines = f.readlines()
@@ -51,8 +59,14 @@ class LRS2Main(Dataset):
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
-        self.stftParams = stftParams
+        self.audioParams = audioParams
         self.videoParams = videoParams
+        if noiseParams["noiseFile"] != None:
+            _, self.noise = wavfile.read(noiseParams["noiseFile"])
+        else:
+            self.noise = None
+        self.noiseSNR = noiseParams["noiseSNR"]
+        self.noiseProb = noiseParams["noiseProb"]
         return
         
 
@@ -64,10 +78,14 @@ class LRS2Main(Dataset):
             index = np.random.choice(ixs)
 
         audioFile = self.datalist[index] + ".wav"
-        roiFile = self.datalist[index] + ".png"
+        visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, roiFile, targetFile, self.charToIx, 
-                                                        self.stftParams, self.videoParams)
+        if np.random.choice([True, False], p=[self.noiseProb, 1-self.noiseProb]):
+            noise = self.noise
+        else:
+            noise = None
+        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, self.charToIx, 
+                                                        self.noiseSNR, self.audioParams, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 

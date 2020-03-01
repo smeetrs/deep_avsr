@@ -7,7 +7,7 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
+def prepare_main_input(audioFile, targetFile, charToIx, audioParams):
     
     with open(targetFile, "r") as f:
         trgt = f.readline().strip()[7:]
@@ -22,9 +22,9 @@ def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
         exit()
 
 
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]
+    stftWindow = audioParams["stftWindow"]
+    stftWinLen = audioParams["stftWinLen"]
+    stftOverlap = audioParams["stftOverlap"]
     sampFreq, inputAudio = wavfile.read(audioFile)
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
@@ -43,7 +43,7 @@ def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
         np.random.shuffle(indices)
         repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
         extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         inp = inp[newIndices]
 
     inpLen = int(len(inp)/4)
@@ -58,7 +58,7 @@ def prepare_main_input(audioFile, targetFile, charToIx, stftParams):
 
 
 
-def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams):
+def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, audioParams):
     
     with open(targetFile, "r") as f:
         lines = f.readlines()
@@ -98,9 +98,9 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
     trgtLen = len(trgt)
 
 
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]
+    stftWindow = audioParams["stftWindow"]
+    stftWinLen = audioParams["stftWinLen"]
+    stftOverlap = audioParams["stftOverlap"]
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
@@ -118,7 +118,7 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, stftParams
         np.random.shuffle(indices)
         repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
         extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         inp = inp[newIndices]
 
     inpLen = int(len(inp)/4)

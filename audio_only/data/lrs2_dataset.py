@@ -8,7 +8,7 @@ from .utils import prepare_main_input
 
 class LRS2Pretrain(Dataset):
     
-    def __init__(self, datadir, numWords, charToIx, stepSize, stftParams):
+    def __init__(self, datadir, numWords, charToIx, stepSize, audioParams):
         super(LRS2Pretrain, self).__init__()
         with open(datadir + "/pretrain.txt", "r") as f:
             lines = f.readlines()
@@ -16,7 +16,7 @@ class LRS2Pretrain(Dataset):
         self.numWords = numWords
         self.charToIx = charToIx
         self.stepSize = stepSize
-        self.stftParams = stftParams
+        self.audioParams = audioParams
         return
         
 
@@ -28,7 +28,7 @@ class LRS2Pretrain(Dataset):
         
         audioFile = self.datalist[index] + ".wav"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, targetFile, self.numWords, self.charToIx, self.stftParams)
+        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, targetFile, self.numWords, self.charToIx, self.audioParams)
         return inp, trgt, inpLen, trgtLen
 
 
@@ -40,7 +40,7 @@ class LRS2Pretrain(Dataset):
 
 class LRS2Main(Dataset):
     
-    def __init__(self, dataset, datadir, charToIx, stepSize, stftParams):
+    def __init__(self, dataset, datadir, charToIx, stepSize, audioParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
             lines = f.readlines()
@@ -48,7 +48,7 @@ class LRS2Main(Dataset):
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
-        self.stftParams = stftParams
+        self.audioParams = audioParams
         return
         
 
@@ -61,7 +61,7 @@ class LRS2Main(Dataset):
 
         audioFile = self.datalist[index] + ".wav"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, self.charToIx, self.stftParams)
+        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, self.charToIx, self.audioParams)
         return inp, trgt, inpLen, trgtLen
 
 

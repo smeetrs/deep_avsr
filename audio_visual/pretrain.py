@@ -25,12 +25,12 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
-videoParams={"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-             "normStd":args["NORMALIZATION_STD"]}
+audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
+videoParams={"videoFPS":args["VIDEO_FPS"]}
+noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
 pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
                             charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                            stftParams=stftParams, videoParams=videoParams)
+                            audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
 pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
 pretrainSize = len(pretrainData) - pretrainValSize
 pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
@@ -75,7 +75,7 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
     model.to(device)
-    print("\nLoading Done.\n")    
+    print("Loading Done.\n")    
 
 
 

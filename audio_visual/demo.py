@@ -6,7 +6,9 @@ import os
 from config import args
 from models.av_net import AVNet
 from models.lrs2_char_lm import LRS2CharLM
+from models.visual_frontend import VisualFrontend
 from data.utils import prepare_main_input, collate_fn
+from utils.preprocessing import preprocess_sample
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
 
 
@@ -31,43 +33,30 @@ model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["TRAINED_MODEL_FI
 model.to(device)
 model.eval()
 
+vf = VisualFrontend().to(device)
+vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
+vf.to(device)
+vf.eval()
+
 
 for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
     for file in files:
         if file.endswith(".mp4"):
-            videoFile = os.path.join(root, file)
-            audioFile = os.path.join(root, file[:-4]) + ".wav"
-            roiFile = os.path.join(root, file[:-4]) + ".png"
+            sampleFile = os.path.join(root, file[:-4])
             targetFile = os.path.join(root, file[:-4]) + ".txt"
 
-            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
-            os.system(v2aCommand)
-            
-            roiSize = args["ROI_SIZE"]
-            captureObj = cv.VideoCapture(videoFile)
-            roiSequence = np.empty((roiSize,0), dtype=np.int)
-            while (captureObj.isOpened()):
-                ret, frame = captureObj.read()
-                if ret == True:
-                    frame = cv.resize(frame, (224,224), interpolation=cv.INTER_CUBIC)
-                    grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-                    roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
-                    roiSequence = np.hstack((roiSequence, roi))
-                else:
-                    break
-            captureObj.release()
-            cv.imwrite(roiFile, roiSequence)
+            params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
+            preprocess_sample(sampleFile, params)
 
-
-            stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
-            videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
-                           "normStd":args["NORMALIZATION_STD"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], 
-                                                            stftParams, videoParams)
+            audioFile = os.path.join(root, file[:-4]) + ".wav"
+            visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
+            audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
+            videoParams = {"videoFPS":args["VIDEO_FPS"]}
+            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, None, args["CHAR_TO_INDEX"], 
+                                                            args["NOISE_SNR_DB"], audioParams, videoParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
-            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), 
-                                      (targetBatch.int()).to(device)
+            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
             inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
             with torch.no_grad():
                 outputBatch = model(inputBatch)

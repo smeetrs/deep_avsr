@@ -1,61 +1,54 @@
 import torch
+from scipy.io import wavfile
+from tqdm import tqdm
 import numpy as np
-import cv2 as cv
 import os
 
 from config import args
 from models.visual_frontend import VisualFrontend
+from utils.preprocessing import preprocess_sample
 
 
-roiSize = args["ROI_SIZE"]
-normMean = args["NORMALIZATION_MEAN"]
-normStd = args["NORMALIZATION_STD"]
+
+filesList = list()
+for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
+    for file in files:
+        if file.endswith(".mp4"):
+            filesList.append(os.path.join(root, file[:-4]))
+
+
+print("\nNumber of data samples to be processed = %d\n" %(len(filesList)))
+print("\nStarting preprocessing ....\n")
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 vf = VisualFrontend().to(device)
 vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
 vf.to(device)
 vf.eval()
+params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
 
+for file in tqdm(filesList):
+    preprocess_sample(file, params)
 
-for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
-    for file in files:
-        if file.endswith(".mp4"):
-
-            videoFile = os.path.join(root, file)
-            audioFile = os.path.join(root, file[:-4]) + ".wav"
-            roiFile = os.path.join(root, file[:-4]) + ".png"
-            visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
+print("\nPreprocessing Done.\n")
             
 
-            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
-            os.system(v2aCommand)
-            
+print("\nGenerating the noise file ....\n")
 
-            captureObj = cv.VideoCapture(videoFile)
-            roiSequence = list()
-            while (captureObj.isOpened()):
-                ret, frame = captureObj.read()
-                if ret == True:
-                    grayed = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-                    grayed = grayed/255
-                    grayed = cv.resize(grayed, (224,224))
-                    roi = grayed[int(112-(roiSize/2)):int(112+(roiSize/2)), int(112-(roiSize/2)):int(112+(roiSize/2))]
-                    roiSequence.append(roi)
-                else:
-                    break
+noise = np.empty((0))
+while len(noise) < 16000*3600:
+    noisePart = np.zeros(16000*60)
+    indices = np.random.randint(0, len(filesList), 20)
+    for ix in indices:
+        sampFreq, audio = wavfile.read(filesList[ix] + ".wav")
+        pos = np.random.randint(0, abs(len(audio)-len(noisePart))+1)
+        if len(audio) > len(noisePart):
+            noisePart = noisePart + audio[pos:pos+len(noisePart)]
+        else:
+            noisePart = noisePart[pos:pos+len(audio)] + audio
+    noise = np.concatenate([noise, noisePart], axis=0)
+noise = noise[:16000*3600]
+noise = np.floor(noise/20).astype(np.int16)
+wavfile.write(args["DATA_DIRECTORY"] + "/noise.wav", 16000, noise)
 
-            captureObj.release()
-            cv.imwrite(roiFile, np.floor(255*np.hstack(roiSequence)).astype(np.int))
-            
-            roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-            inp = np.dstack(roiSequence)
-            inp = np.transpose(inp, (2,0,1))
-            inp = inp.reshape((inp.shape[0],1,1,inp.shape[1],inp.shape[2]))
-            inp = (inp - normMean)/normStd
-            inputBatch = torch.from_numpy(inp)
-            inputBatch = (inputBatch.float()).to(device)
-            with torch.no_grad():
-                outputBatch = vf(inputBatch)
-            out = outputBatch.view(outputBatch.size(0), outputBatch.size(2))
-            out = out.cpu().numpy()
-            np.save(visualFeaturesFile, out)
+print("Noise file generated.\n")

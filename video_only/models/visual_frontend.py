@@ -82,13 +82,13 @@ class VisualFrontend(nn.Module):
 
     def forward(self, inputBatch):
         inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)
-        batchsize = inputBatch.size(0)
+        batchsize = inputBatch.shape[0]
         batch = self.frontend3D(inputBatch)
 
         batch = batch.transpose(1, 2)
-        batch = batch.reshape(batch.size(0)*batch.size(1), batch.size(2), batch.size(3), batch.size(4))
+        batch = batch.reshape(batch.shape[0]*batch.shape[1], batch.shape[2], batch.shape[3], batch.shape[4])
         outputBatch = self.resnet(batch)
-        outputBatch = outputBatch.view(batchsize, -1, 512)
+        outputBatch = outputBatch.reshape(batchsize, -1, 512)
         outputBatch = outputBatch.transpose(1 ,2)
         outputBatch = outputBatch.transpose(1, 2).transpose(0, 1)
         return outputBatch

@@ -7,6 +7,7 @@ from config import args
 from models.audio_net import AudioNet
 from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
+from utils.preprocessing import preprocess_sample
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
 
 
@@ -35,15 +36,14 @@ model.eval()
 for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
     for file in files:
         if file.endswith(".mp4"):
-            videoFile = os.path.join(root, file)
-            audioFile = os.path.join(root, file[:-4]) + ".wav"
+            sampleFile = os.path.join(root, file[:-4])
             targetFile = os.path.join(root, file[:-4]) + ".txt"
 
-            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
-            os.system(v2aCommand)
+            preprocess_sample(sampleFile)
 
-            stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], stftParams)
+            audioFile = os.path.join(root, file[:-4]) + ".wav"
+            audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
+            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], audioParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
             inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)

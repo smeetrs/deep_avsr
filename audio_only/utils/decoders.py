@@ -10,7 +10,7 @@ def ctc_greedy_decode(outputBatch, inputLenBatch, eosIx, blank=0):
     outputBatch = outputBatch.cpu()
     inputLenBatch = inputLenBatch.cpu()
     outputBatch[:,:,blank] = torch.log(torch.exp(outputBatch[:,:,blank]) + torch.exp(outputBatch[:,:,eosIx]))
-    reqIxs = np.arange(outputBatch.size(2))
+    reqIxs = np.arange(outputBatch.shape[2])
     reqIxs = reqIxs[reqIxs != eosIx]
     outputBatch = outputBatch[:,:,reqIxs]
     
@@ -72,15 +72,15 @@ def apply_lm(parentBeam, childBeam, spaceIx, lm):
         lm.eval()
         if parentBeam.lmState == None:
             initStateBatch = None
-            inputBatch = torch.tensor(spaceIx-1).view(1,1)
+            inputBatch = torch.tensor(spaceIx-1).reshape(1,1)
             inputBatch = inputBatch.to(device)
         else:
             initStateBatch = parentBeam.lmState
-            inputBatch = torch.tensor(parentBeam.labeling[-1]-1).view(1,1)
+            inputBatch = torch.tensor(parentBeam.labeling[-1]-1).reshape(1,1)
             inputBatch = inputBatch.to(device) 
         with torch.no_grad():
             outputBatch, finalStateBatch = lm(inputBatch, initStateBatch)
-        logProbs = outputBatch.view(outputBatch.size(2))
+        logProbs = outputBatch.squeeze()
         logProb = logProbs[childBeam.labeling[-1]-1]
         childBeam.logPrText = parentBeam.logPrText + logProb
         childBeam.lmApplied = True
@@ -104,7 +104,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
     outputBatch = outputBatch.cpu()
     inputLenBatch = inputLenBatch.cpu()
     outputBatch[:,:,blank] = torch.log(torch.exp(outputBatch[:,:,blank]) + torch.exp(outputBatch[:,:,eosIx]))
-    reqIxs = np.arange(outputBatch.size(2))
+    reqIxs = np.arange(outputBatch.shape[2])
     reqIxs = reqIxs[reqIxs != eosIx]
     outputBatch = outputBatch[:,:,reqIxs]
     

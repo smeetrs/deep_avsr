@@ -8,12 +8,10 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, videoParams):
+def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, charToIx, noiseSNR, audioParams, videoParams):
     
     videoFPS = videoParams["videoFPS"]
-    roiSize = videoParams["roiSize"]
-    normMean = videoParams["normMean"]
-    normStd = videoParams["normStd"]
+
 
     with open(targetFile, "r") as f:
         trgt = f.readline().strip()[7:]
@@ -28,14 +26,21 @@ def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, vid
         exit()
 
 
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]    
+    stftWindow = audioParams["stftWindow"]
+    stftWinLen = audioParams["stftWinLen"]
+    stftOverlap = audioParams["stftOverlap"]    
     sampFreq, inputAudio = wavfile.read(audioFile)
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
     inputAudio = inputAudio/np.max(inputAudio)
+    if noise is not None:
+        pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
+        noise = noise[pos:pos+len(inputAudio)]
+        noise = noise/np.max(noise)
+        gain = 10**(noiseSNR/10)
+        noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
+        inputAudio = inputAudio + noise
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
     _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
@@ -44,14 +49,7 @@ def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, vid
     audInp = audInp.T
 
 
-    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-    roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
-    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-    vidInp = np.dstack(roiSequence)
-    vidInp = np.transpose(vidInp, (2,0,1))
-    vidInp = vidInp.reshape((vidInp.shape[0],1,vidInp.shape[1],vidInp.shape[2]))
-    vidInp = vidInp/255
-    vidInp = (vidInp - normMean)/normStd
+    vidInp = np.load(visualFeaturesFile)
 
 
     if len(audInp)/4 >= len(vidInp):
@@ -59,7 +57,7 @@ def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, vid
         padding = (4*inpLen - len(audInp))
         audInp = np.pad(audInp, ((0,padding),(0,0)), "constant")
         padding = (inpLen - len(vidInp))
-        vidInp = np.pad(vidInp, ((0,padding),(0,0),(0,0),(0,0)), "constant")
+        vidInp = np.pad(vidInp, ((0,padding),(0,0)), "constant")
     else:
         inpLen = len(vidInp)
         padding = (4*inpLen - len(audInp))
@@ -72,7 +70,7 @@ def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, vid
         np.random.shuffle(indices)
         repetitions = int((reqInpLen - inpLen)/inpLen) + 1
         extras = (reqInpLen - inpLen) % inpLen
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         audInp = audInp[4*np.repeat(newIndices, 4) + np.tile(np.array([0,1,2,3]), len(newIndices))]
         vidInp = vidInp[newIndices] 
 
@@ -90,12 +88,10 @@ def prepare_main_input(audioFile, roiFile, targetFile, charToIx, stftParams, vid
 
 
 
-def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, stftParams, videoParams):
+def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, numWords, charToIx, noiseSNR, 
+                           audioParams, videoParams):
     
     videoFPS = videoParams["videoFPS"]
-    roiSize = videoParams["roiSize"]
-    normMean = videoParams["normMean"]
-    normStd = videoParams["normStd"]
 
 
     with open(targetFile, "r") as f:
@@ -112,8 +108,7 @@ def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, s
             print("Max target length reached. Exiting")
             exit()
         sampFreq, inputAudio = wavfile.read(audioFile)
-        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
+        vidInp = np.load(visualFeaturesFile) 
 
     else:
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
@@ -130,10 +125,8 @@ def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, s
         endTime = float(lines[4+ix+numWords-1].split(" ")[2])
         sampFreq, audio = wavfile.read(audioFile)
         inputAudio = audio[int(sampFreq*startTime):int(sampFreq*endTime)]
-
-        roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-        roiSequence = np.split(roiSequence, roiSequence.shape[1]/roiSize, axis=1)
-        roiSequence = roiSequence[int(np.floor(videoFPS*startTime)):int(np.ceil(videoFPS*endTime))]
+        vidInp = np.load(visualFeaturesFile)
+        vidInp = vidInp[int(np.floor(videoFPS*startTime)):int(np.ceil(videoFPS*endTime))]
 
 
     trgt = [charToIx[char] for char in trgtNWord]
@@ -142,13 +135,20 @@ def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, s
     trgtLen = len(trgt)
 
 
-    stftWindow = stftParams["window"]
-    stftWinLen = stftParams["winLen"]
-    stftOverlap = stftParams["overlap"]
+    stftWindow = audioParams["stftWindow"]
+    stftWinLen = audioParams["stftWinLen"]
+    stftOverlap = audioParams["stftOverlap"]
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
     inputAudio = inputAudio/np.max(inputAudio)
+    if noise is not None:
+        pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
+        noise = noise[pos:pos+len(inputAudio)]
+        noise = noise/np.max(noise)
+        gain = 10**(noiseSNR/10)
+        noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
+        inputAudio = inputAudio + noise
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
     _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
@@ -157,20 +157,12 @@ def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, s
     audInp = audInp.T
 
 
-    roiSequence = [roi.reshape((roi.shape[0],roi.shape[1],1)) for roi in roiSequence]
-    vidInp = np.dstack(roiSequence)
-    vidInp = np.transpose(vidInp, (2,0,1))
-    vidInp = vidInp.reshape((vidInp.shape[0],1,vidInp.shape[1],vidInp.shape[2]))
-    vidInp = vidInp/255
-    vidInp = (vidInp - normMean)/normStd
-
-
     if len(audInp)/4 >= len(vidInp):
         inpLen = int(np.ceil(len(audInp)/4))
         padding = (4*inpLen - len(audInp))
         audInp = np.pad(audInp, ((0,padding),(0,0)), "constant")
         padding = (inpLen - len(vidInp))
-        vidInp = np.pad(vidInp, ((0,padding),(0,0),(0,0),(0,0)), "constant")
+        vidInp = np.pad(vidInp, ((0,padding),(0,0)), "constant")
     else:
         inpLen = len(vidInp)
         padding = (4*inpLen - len(audInp))
@@ -183,7 +175,7 @@ def prepare_pretrain_input(audioFile, roiFile, targetFile, numWords, charToIx, s
         np.random.shuffle(indices)
         repetitions = int((reqInpLen - inpLen)/inpLen) + 1
         extras = (reqInpLen - inpLen) % inpLen
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         audInp = audInp[4*np.repeat(newIndices, 4) + np.tile(np.array([0,1,2,3]), len(newIndices))]
         vidInp = vidInp[newIndices] 
 

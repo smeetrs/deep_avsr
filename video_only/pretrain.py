@@ -72,7 +72,7 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
     model.to(device)
-    print("\nLoading Done.\n")    
+    print("Loading Done.\n")    
 
 
 

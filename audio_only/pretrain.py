@@ -25,9 +25,9 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-stftParams={"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
 pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
-                            charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], stftParams=stftParams)
+                            charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams)
 pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
 pretrainSize = len(pretrainData) - pretrainValSize
 pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
@@ -73,7 +73,7 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
     model.to(device)
-    print("\nLoading Done.\n")    
+    print("Loading Done.\n")    
 
 
 

@@ -7,11 +7,13 @@ import os
 
 from config import args
 from models.lrs2_char_lm import LRS2CharLM
+from models.visual_frontend import VisualFrontend
 from models.av_net import AVNet
 from data.utils import req_input_length, collate_fn
 from data.lrs2_dataset import LRS2Pretrain, LRS2Main
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
 from utils.metrics import compute_cer, compute_wer
+from utils.preprocessing import preprocess_sample
 
 
 def req_input_length_checker():
@@ -35,7 +37,7 @@ def collate_fn_checker():
     trgtLens = [4, 6, 7, 10]
     for i in range(len(inpLens)):
         audInp = torch.from_numpy(np.random.rand(4*inpLens[i], args["AUDIO_FEATURE_SIZE"]))
-        vidInp = torch.from_numpy(np.random.rand(inpLens[i], 1, args["ROI_SIZE"], args["ROI_SIZE"]))
+        vidInp = torch.from_numpy(np.random.rand(inpLens[i], args["TX_NUM_FEATURES"]))
         inp = (audInp,vidInp)
         trgt = torch.from_numpy(np.random.randint(0,args["NUM_CLASSES"],trgtLens[i]))
         inpLen = torch.tensor(inpLens[i])
@@ -43,34 +45,35 @@ def collate_fn_checker():
         data = (inp, trgt, inpLen, trgtLen)
         dataBatch.append(data)
     inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn(dataBatch)
-    print((inputBatch[0].size(),inputBatch[1].size()), targetBatch.size(), inputLenBatch.size(), targetLenBatch.size())
+    print((inputBatch[0].shape,inputBatch[1].shape), targetBatch.shape, inputLenBatch.shape, targetLenBatch.shape)
     return
 
 
 def lrs2pretrain_checker():
-    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
-    pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
-                                charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                                stftParams=stftParams, videoParams=videoParams)
+    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], charToIx=args["CHAR_TO_INDEX"], 
+                                stepSize=args["STEP_SIZE"], audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
-    print((inp[0].size(),inp[1].size()), trgt.size(), inpLen.size(), trgtLen.size())
+    print((inp[0].shape,inp[1].shape), trgt.shape, inpLen.shape, trgtLen.shape)
     return
 
 
 def lrs2main_checker():
-    stftParams = {"window":args["STFT_WINDOW"], "winLen":args["STFT_WIN_LENGTH"], "overlap":args["STFT_OVERLAP"]}
+    audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                         stepSize=args["STEP_SIZE"], stftParams=stftParams, videoParams=videoParams)
+    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
+                         audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
-    print((inp[0].size(),inp[1].size()), trgt.size(), inpLen.size(), trgtLen.size())
+    print((inp[0].shape,inp[1].shape), trgt.shape, inpLen.shape, trgtLen.shape)
     return
 
 
@@ -80,14 +83,14 @@ def lrs2main_max_inplen_checker():
         for file in files:
             if file.endswith(".mp4"):
                 audioFile = os.path.join(root, file[:-4]) + ".wav"
-                roiFile = os.path.join(root, file[:-4]) + ".png"
+                visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     trgt = f.readline().strip()[7:]
                 sampFreq, audio = wavfile.read(audioFile)
                 audInpLen = (len(audio) - 640)//160 + 1
-                roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-                vidInpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                visualFeatures = np.load(visualFeaturesFile)
+                vidInpLen = len(visualFeatures)
                 if vidInpLen >= audInpLen/4:
                     inpLen = vidInpLen
                 else:
@@ -173,7 +176,7 @@ def lrs2pretrain_max_inplen_checker():
             if file.endswith(".mp4"):
 
                 audioFile = os.path.join(root, file[:-4]) + ".wav"
-                roiFile = os.path.join(root, file[:-4]) + ".png"
+                visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     lines = f.readlines()
@@ -187,8 +190,8 @@ def lrs2pretrain_max_inplen_checker():
                         exit()
                     sampFreq, audio = wavfile.read(audioFile)
                     audInpLen = (len(audio) - 640)//160 + 1
-                    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-                    vidInpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                    visualFeatures = np.load(visualFeaturesFile)
+                    vidInpLen = len(visualFeatures)
                     if vidInpLen >= audInpLen/4:
                         inpLen = vidInpLen
                     else:
@@ -316,13 +319,13 @@ def lrs2charlm_checker():
     initStateBatch = None
     string = list()
     for i in range(100):
-        inputBatch = inp.view(1,1)
+        inputBatch = inp.reshape(1,1)
         inputBatch = inputBatch.to(device)
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
         
         outputBatch = torch.exp(outputBatch)
-        out = outputBatch.view(outputBatch.size(2))
+        out = outputBatch.squeeze()
         probs = out.tolist()
         ix = np.random.choice(np.arange(len(probs)), p=probs/np.sum(probs))
         char = args["INDEX_TO_CHAR"][ix+1]
@@ -344,11 +347,24 @@ def avnet_checker():
     model.to(device)
     T, N, C = 40, args["BATCH_SIZE"], args["AUDIO_FEATURE_SIZE"]
     audioInputBatch = torch.rand(T, N, C).to(device)
-    T, N, C, H, W = 10, args["BATCH_SIZE"], 1, args["ROI_SIZE"], args["ROI_SIZE"]
-    videoInputBatch = torch.rand(T, N, C, H, W).to(device)
+    T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"]
+    videoInputBatch = torch.rand(T, N, C).to(device)
     inputBatch = (audioInputBatch,videoInputBatch)
     outputBatch = model(inputBatch)
-    print(outputBatch.size())
+    print(outputBatch.shape)
+    return
+
+
+def visualfrontend_checker():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = VisualFrontend().to(device)
+    model.to(device)
+    model.eval()
+    T, N, C, H, W = 10, args["BATCH_SIZE"], 1, args["ROI_SIZE"], args["ROI_SIZE"]
+    inputBatch = torch.rand(T, N, C, H, W).to(device)
+    with torch.no_grad():
+        outputBatch = model(inputBatch)
+    print(outputBatch.shape)
     return
 
 
@@ -429,7 +445,18 @@ def compute_cer_checker():
     print(compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch))
     return
 
+def preprocess_sample_checker():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    vf = VisualFrontend().to(device)
+    vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
+    vf.to(device)
+    vf.eval()
+    file = args["CODE_DIRECTORY"] + "/demo/00001"
+    params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
+    preprocess_sample(file, params)
+    return
 
+    
 if __name__ == '__main__':
     #call the required function checker
     #delete the function calls after checking to avoid pushing everytime to github

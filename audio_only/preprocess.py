@@ -1,13 +1,20 @@
-import numpy as np
 import os
+from tqdm import tqdm
 
 from config import args
+from utils.preprocessing import preprocess_sample
 
 
+filesList = list()
 for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
     for file in files:
         if file.endswith(".mp4"):
-            videoFile = os.path.join(root, file)
-            audioFile = os.path.join(root, file[:-4]) + ".wav"
-            v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
-            os.system(v2aCommand)
+            filesList.append(os.path.join(root, file[:-4]))
+
+print("\nNumber of data samples to be processed = %d\n" %(len(filesList)))
+print("\nStarting preprocessing ....\n")
+
+for file in tqdm(filesList):
+    preprocess_sample(file)
+
+print("\nPreprocessing Done.\n")

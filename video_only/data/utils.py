@@ -32,7 +32,7 @@ def prepare_main_input(visualFeaturesFile, targetFile, charToIx, videoParams):
         np.random.shuffle(indices)
         repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
         extras = (reqInpLen - len(inp)) % len(inp)
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         inp = inp[newIndices]
 
     inpLen = len(inp)
@@ -96,7 +96,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         np.random.shuffle(indices)
         repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
         extras = (reqInpLen - len(inp)) % len(inp)
-        newIndices = np.sort(np.concatenate((np.repeat(indices, repetitions), indices[:extras])))
+        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
         inp = inp[newIndices]
 
     inpLen = len(inp)

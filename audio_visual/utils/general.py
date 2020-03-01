@@ -20,8 +20,7 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
 
     for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(trainLoader):
         
-        inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), 
-                                  (targetBatch.int()).to(device)
+        inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
         
         optimizer.zero_grad()
@@ -53,8 +52,7 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
     with torch.no_grad():
         for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(evalLoader):
             
-            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), 
-                                      (targetBatch.int()).to(device)
+            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
             inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
             
             outputBatch = model(inputBatch)
