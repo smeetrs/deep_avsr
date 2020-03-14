@@ -47,9 +47,9 @@ CUDA 10.0 (optional):
 `demo.py`: Python script for running a demo of the trained model on all the data samples in the `demo` directory.
 
 `preprocess.py`: Python script for preprocessing all the data samples in the dataset.
- 
+
  `pretrain.py`: Python script for pretraining the model on the pretrain dataset using curriculum learning.
- 
+
 `test.py`: Python script to test the trained model on the test set.
 
 `train.py`: Python script to train the model on the training dataset.
@@ -73,6 +73,16 @@ CUDA 10.0 (optional):
 ## Pre-trained Weights
 
 Will be made available soon.
+
+## Results
+
+The Word Error Rates achieved by the models on the test set of the LRS2-BBC dataset are as follows:
+
+| Model        | CTC Greedy Search | CTC Beam Search + LM |
+| ------------ | ----------------- | -------------------- |
+| Audio-only   | 15.5%             | 11.3%                |
+| Video-only   | 70.8%             | 60.4%                |
+| Audio-visual | 14.8%             | 9.8%                 |
 
 ## To Do
 - Adding ignored files to github, unsetting git credentials
