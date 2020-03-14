@@ -70,8 +70,15 @@ CUDA 10.0 (optional):
 1. Setting the configuration options in the `config.py` file.
 2. Running the `demo.py` file.
 
+## Pre-trained Weights
+
+Will be made available soon.
+
 ## To Do
 - Adding ignored files to github, unsetting git credentials
-- commenting the code (do it last since editing the comments is a PITA)
 - deleting all wav and png files from dataset at last
-- noisy training (audio/video/both) and data augmentation at the end if needed
+
+## References
+
+1. Afouras T. and Chung J. Deep Lip Reading: a comparison of models and an online application, 2018. [(GitHub)](https://github.com/afourast/deep_lip_reading)
+2. Harald Scheidl. CTC Decoding Algorithms [(GitHub)](https://github.com/githubharald/CTCDecoder)

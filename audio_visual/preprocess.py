@@ -10,6 +10,7 @@ from utils.preprocessing import preprocess_sample
 
 
 
+#walking through the data directory and obtaining a list of all files in the dataset
 filesList = list()
 for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
     for file in files:
@@ -17,9 +18,11 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
             filesList.append(os.path.join(root, file[:-4]))
 
 
+#Preprocessing each sample
 print("\nNumber of data samples to be processed = %d\n" %(len(filesList)))
 print("\nStarting preprocessing ....\n")
 
+#declaring the visual frontend module
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 vf = VisualFrontend().to(device)
 vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
@@ -33,6 +36,9 @@ for file in tqdm(filesList):
 print("\nPreprocessing Done.\n")
             
 
+#Generating a 1 hour noise file
+#Fetching audio samples from 20 random files in the dataset and adding them up to generate noise
+#The length of these clips is the shortest audio sample among the 20 samples
 print("\nGenerating the noise file ....\n")
 
 noise = np.empty((0))

@@ -6,6 +6,11 @@ import os
 
 
 def preprocess_sample(file, params):
+
+    """
+    Function to preprocess each data sample. 
+    """
+
     videoFile = file + ".mp4"
     audioFile = file + ".wav"
     roiFile = file + ".png"
@@ -17,9 +22,11 @@ def preprocess_sample(file, params):
     vf = params["vf"]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    #Extract the audio from the video file and save it to a wav file.
     v2aCommand = "ffmpeg -y -v quiet -i " + videoFile + " -ac 1 -ar 16000 -vn " + audioFile
     os.system(v2aCommand)
 
+    #for each frame, resize to 224x224 and crop the central 112x112 region
     captureObj = cv.VideoCapture(videoFile)
     roiSequence = list()
     while (captureObj.isOpened()):
@@ -35,6 +42,8 @@ def preprocess_sample(file, params):
     captureObj.release()
     cv.imwrite(roiFile, np.floor(255*np.concatenate(roiSequence, axis=1)).astype(np.int))
     
+    #normalise the frames and extract features for each frame using the visual frontend
+    #save the visual features to a .npy file
     inp = np.stack(roiSequence, axis=0)
     inp = np.expand_dims(inp, axis=[1,2])
     inp = (inp - normMean)/normStd

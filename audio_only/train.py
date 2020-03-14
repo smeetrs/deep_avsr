@@ -25,6 +25,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
+#declaring the train and validation datasets and their corresponding dataloaders
 audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
 trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
                      stepSize=args["STEP_SIZE"], audioParams=audioParams)
@@ -34,7 +35,7 @@ trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=co
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
-
+#declaring the model, optimizer, scheduler and the loss function
 model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
                  numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
                  inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
@@ -48,6 +49,7 @@ loss_function = nn.CTCLoss(blank=0, zero_infinity=False)
 
 
 
+#removing the checkpoints directory if it exists and remaking it
 if os.path.exists(args["CODE_DIRECTORY"] + "/checkpoints"):
     
     while True:
@@ -66,6 +68,7 @@ os.mkdir(args["CODE_DIRECTORY"] + "/checkpoints/plots")
 
 
 
+#loading the pretrained weights
 if args["PRETRAINED_MODEL_FILE"] is not None:
 
     print("\n\nPre-trained Model File: %s" %(args["PRETRAINED_MODEL_FILE"]))
@@ -84,6 +87,7 @@ validationWERCurve = list()
 
 print("\nTraining the model .... \n")
 
+#printing the total and trainable parameters in the model
 numTotalParams, numTrainableParams = num_params(model)
 print("Number of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
@@ -94,20 +98,25 @@ valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eos
 
 for step in range(1, args["NUM_STEPS"]+1):
     
+    #train the model for one step
     trainingLoss, trainingCER, trainingWER = train(model, trainLoader, optimizer, loss_function, device, trainParams)
     trainingLossCurve.append(trainingLoss)
     trainingWERCurve.append(trainingWER)
 
+    #evaluate the model on validation set
     validationLoss, validationCER, validationWER = evaluate(model, valLoader, loss_function, device, valParams)
     validationLossCurve.append(validationLoss)
     validationWERCurve.append(validationWER)
 
+    #make a scheduler step
     scheduler.step(validationWER)
 
+    #printing the stats after each step
     print("Step: %d || Tr.Loss: %.6f || Val.Loss: %.6f || Tr.CER: %.3f || Val.CER: %.3f || Tr.WER: %.3f || Val.WER: %.3f" 
           %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
     
 
+    #saving the model weights and loss/metric curves in the checkpoints directory after every few steps
     if (step % args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]):
         
         savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/train-step_{:04d}-wer_{:.3f}.pt".format(step, validationWER)
@@ -134,6 +143,7 @@ for step in range(1, args["NUM_STEPS"]+1):
         plt.close()
 
 
+    #empty cache after every step to avoid filling up the GPU memory when using variable sized batches
     if args["EMPTY_CACHE"]:
         if torch.cuda.is_available():
            torch.cuda.empty_cache() 

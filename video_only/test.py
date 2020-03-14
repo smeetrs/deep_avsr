@@ -21,12 +21,14 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
+#declaring the test dataset and test dataloader
 videoParams={"videoFPS":args["VIDEO_FPS"]}
 testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
                     stepSize=args["STEP_SIZE"], videoParams=videoParams)
 testLoader = DataLoader(testData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
+#declaring the model and loss function
 model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
                  peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
                  numClasses=args["NUM_CLASSES"])
@@ -40,6 +42,7 @@ if args["TRAINED_MODEL_FILE"] is not None:
     print("\nTrained Model File: %s" %(args["TRAINED_MODEL_FILE"]))
     print("\nTesting the trained model .... \n")
 
+    #loading the trained model weights
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["TRAINED_MODEL_FILE"]))
     model.to(device)
     
@@ -48,11 +51,15 @@ if args["TRAINED_MODEL_FILE"] is not None:
     testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, 
                   "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":None}
     if args["USE_LM"]:
+        #declaring the language model
         lm = LRS2CharLM().to(device)
         lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
         lm.to(device)
         testParams["lm"] = lm
+
+    #evaluating the model over the test set
     testLoss, testCER, testWER = evaluate(model, testLoader, loss_function, device, testParams)
     
+    #printing the test set loss, CER and WER
     print("Test Loss: %.6f || Test CER: %.3f || Test WER: %.3f" %(testLoss, testCER, testWER))
     print("\nTesting Done.\n")    

@@ -6,6 +6,9 @@ from .decoders import ctc_greedy_decode, ctc_search_decode
 
 
 def num_params(model):
+    """
+    Function that outputs the number of total and trainable paramters in the model.
+    """
     numTotalParams = sum([params.numel() for params in model.parameters()])
     numTrainableParams = sum([params.numel() for params in model.parameters() if params.requires_grad])
     return numTotalParams, numTrainableParams
@@ -13,6 +16,12 @@ def num_params(model):
 
 
 def train(model, trainLoader, optimizer, loss_function, device, trainParams):
+
+    """
+    Function to train the model for one iteration. (Generally, one iteration = one epoch, but here it is one step).
+    It also computes the training loss, CER and WER. The CTC decode scheme is always 'greedy' here.
+    """
+
     model.train()
     trainingLoss = 0
     trainingCER = 0
@@ -44,6 +53,12 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
 
 
 def evaluate(model, evalLoader, loss_function, device, evalParams):
+
+    """
+    Function to evaluate the model over validation/test set. It computes the loss, CER and WER over the evaluation set.
+    The CTC decode scheme can be set to either 'greedy' or 'search'. 
+    """
+
     model.eval()
     evalLoss = 0
     evalCER = 0

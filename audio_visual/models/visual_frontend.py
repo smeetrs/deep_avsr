@@ -8,6 +8,14 @@ import numpy as np
 
 class ResNetLayer(nn.Module):
 
+    """
+    A ResNet layer used to build the ResNet network.
+    Architecture:
+    --> conv-bn-relu -> conv -> + -> bn-relu -> conv-bn-relu -> conv -> + -> bn-relu -->
+     |                        |   |                                    |
+     -----> downsample ------>    ------------------------------------->
+    """
+
     def __init__(self, inplanes, outplanes, stride):
         super(ResNetLayer, self).__init__()
         self.conv1a = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -45,6 +53,10 @@ class ResNetLayer(nn.Module):
 
 
 class ResNet(nn.Module):
+    
+    """
+    An 18-layer ResNet architecture.
+    """
 
     def __init__(self):
         super(ResNet, self).__init__()
@@ -67,6 +79,11 @@ class ResNet(nn.Module):
 
 
 class VisualFrontend(nn.Module):
+
+    """
+    A visual feature extraction module. Generates a 512-dim feature vector per video frame.
+    Architecture: A 3D convolution block followed by an 18-layer ResNet.
+    """
 
     def __init__(self):
         super(VisualFrontend, self).__init__()

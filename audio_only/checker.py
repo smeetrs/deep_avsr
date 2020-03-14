@@ -414,3 +414,4 @@ def preprocess_sample_checker():
 if __name__ == '__main__':
     #call the required function checker
     #delete the function calls after checking to avoid pushing everytime to github
+    exit()

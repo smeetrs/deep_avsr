@@ -7,6 +7,14 @@ import os
 
 class LRS2CharLM(nn.Module):
 
+    """
+    A character-level language model for the LRS2 Dataset.
+    Architecture: Unidirectional 4-layered 1024-dim LSTM model
+    Character Set: 26 alphabets (A-Z), 10 numbers (0-9), apostrophe (''), space ( )
+    Output: Log probabilities over the character set
+    Note: The space character plays the role of the start-of-sequence token as well.
+    """
+
     def __init__(self):
         super(LRS2CharLM, self).__init__()
         self.embedding = nn.Embedding(38, 1024, padding_idx=None)

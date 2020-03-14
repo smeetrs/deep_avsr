@@ -7,6 +7,13 @@ import math
 
 class PositionalEncoding(nn.Module):
 
+    """
+    A layer to add positional encodings to the inputs of a Transformer model.
+    Formula:
+    PE(pos,2i) = sin(pos/10000^(2i/d_model))
+    PE(pos,2i+1) = cos(pos/10000^(2i/d_model))
+    """
+
     def __init__(self, dModel, maxLen):
         super(PositionalEncoding, self).__init__()
         pe = torch.zeros(maxLen, dModel)
@@ -24,6 +31,15 @@ class PositionalEncoding(nn.Module):
 
 
 class VideoNet(nn.Module):
+
+    """
+    A video-only speech transcription model based on the Transformer architecture.
+    Architecture: A stack of 12 Transformer encoder layers, 
+                  first 6 form the Encoder and the last 6 form the Decoder.
+    Character Set: 26 alphabets (A-Z), 10 numbers (0-9), apostrophe ('), space ( ), blank (-), end-of-sequence (<EOS>)
+    Input: 512-dim feature vector corresponding to each video frame giving 25 vectors per second.
+    Output: Log probabilities over the character set at each time step.
+    """
 
     def __init__(self, dModel, nHeads, numLayers, peMaxLen, fcHiddenSize, dropout, numClasses):
         super(VideoNet, self).__init__()
