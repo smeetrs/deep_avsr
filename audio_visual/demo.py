@@ -29,6 +29,7 @@ from models.visual_frontend import VisualFrontend
 from data.utils import prepare_main_input, collate_fn
 from utils.preprocessing import preprocess_sample
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
+from utils.metrics import compute_cer, compute_wer
 
 
 np.random.seed(args["SEED"])

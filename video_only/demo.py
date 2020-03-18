@@ -30,6 +30,7 @@ from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
 from utils.preprocessing import preprocess_sample
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
+from utils.metrics import compute_cer, compute_wer
 
 
 np.random.seed(args["SEED"])
