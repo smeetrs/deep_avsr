@@ -6,7 +6,7 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(visualFeaturesFile, targetFile, charToIx, videoParams):
+def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, videoParams):
     
     """
     Function to convert the data sample (visual features file, target file) in the main dataset into appropriate tensors.
@@ -23,17 +23,16 @@ def prepare_main_input(visualFeaturesFile, targetFile, charToIx, videoParams):
     trgt = np.array(trgt)
     trgtLen = len(trgt)
 
-    #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
-    if trgtLen > 256:
-        print("Max target length reached. Exiting")
+    #the target length must be less than or equal to 100 characters (restricted space where our model will work)
+    if trgtLen > 100:
+        print("Target length more than 100 characters. Exiting")
         exit()
 
     #loading the visual features
     inp = np.load(visualFeaturesFile)
 
-    #checking whether the input length is greater than or equal to the target length (#characters)
+    #checking whether the input length is greater than or equal to the max target length (#characters)
     #if not, extending the input by repeating random feature vectors
-    reqInpLen = req_input_length(trgt)
     if len(inp) < reqInpLen:
         indices = np.arange(len(inp))
         np.random.shuffle(indices)
@@ -75,7 +74,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         trgtNWord = trgt
         #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
         if len(trgtNWord)+1 > 256:
-            print("Max target length reached. Exiting")
+            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         #loading the visual features
         inp = np.load(visualFeaturesFile)
@@ -87,7 +86,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
         nWordLens[nWordLens > 256] = -np.inf
         if np.all(nWordLens == -np.inf):
-            print("Max target length reached. Exiting")
+            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         
         #choose the sub-sequence for target according to a softmax distribution of the lengths

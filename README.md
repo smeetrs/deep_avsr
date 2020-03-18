@@ -5,7 +5,7 @@ The repository contains a PyTorch reproduction of the [Deep Audio-Visual Speech 
 ## Requirements
 
 System packages:
-	
+
 	ffmpeg
 
 Python packages:
@@ -18,8 +18,8 @@ Python packages:
 	scipy==1.3.1
 	tqdm==4.42.1
 
-CUDA 10.0 (optional): 
-	
+CUDA 10.0 (optional):
+
 	cudatoolkit==10.0
 
 ## Project Structure
@@ -29,7 +29,7 @@ CUDA 10.0 (optional):
 `/checkpoints`: Directory to store intermediate model weights and plots while training.
 
 `/data`: Directory containing dataset-related files. Specifically, it contains the LRS2 main and pretrain dataset class definitions and other required utility functions.
-	
+
 `/demo`: Directory containing data samples from LRS2 dataset for demo.
 
 `/final`: Directory to store the final trained model weights and plots.
@@ -84,9 +84,21 @@ The Word Error Rates achieved by the models on the test set of the LRS2-BBC data
 | Video-only   | 70.8%             | 60.4%                |
 | Audio-visual | 14.8%             | 9.8%                 |
 
+The WER of the Audio-visual model on the test set of LRS2-BBC dataset using CTC Beam Search + Language Model given in the paper is 8.2%. Since the authors of the paper pretrain the model using the LRS3-TED and MV-LRS datasets as well, the WER we achieved would be higher than 8.2%. However, with some minor modifications, a WER of about 9% can be achieved. The modifications that can be employed are as follows:
+
+-  Adding regularization to the loss function
+- Pretraining the model up to 37 words (at 38 words, the PyTorch CTC loss function limit gets exceeded, however, using something like resampling if there's a bad sample, the model can be pretrained up to much more words)
+- More finer curriculum learning steps
+- Hyperparameter search
+- Data Augmentation
+
+(To be done after getting some significant decrease in WER of the presently trained model)
+
 ## To Do
+
 - Adding ignored files to github, unsetting git credentials
 - deleting all wav and png files from dataset at last
+- Predictions logging
 
 ## References
 

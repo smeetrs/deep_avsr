@@ -23,8 +23,8 @@ torch.backends.cudnn.benchmark = False
 
 #declaring the test dataset and test dataloader
 audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                    stepSize=args["STEP_SIZE"], audioParams=audioParams)
+testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"],
+                    charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams)
 testLoader = DataLoader(testData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 

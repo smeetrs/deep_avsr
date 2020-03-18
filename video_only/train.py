@@ -27,10 +27,10 @@ torch.backends.cudnn.benchmark = False
 
 #declaring the train and validation datasets and their corresponding dataloaders
 videoParams={"videoFPS":args["VIDEO_FPS"]}
-trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                     stepSize=args["STEP_SIZE"], videoParams=videoParams)
-valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                   stepSize=args["STEP_SIZE"], videoParams=videoParams)
+trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                     charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
+valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                   charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
 trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 

@@ -29,11 +29,13 @@ torch.backends.cudnn.benchmark = False
 audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
 videoParams={"videoFPS":args["VIDEO_FPS"]}
 noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                     audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
+trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                     charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
+                     videoParams=videoParams, noiseParams=noiseParams)
 noiseParams={"noiseFile":None, "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                   audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
+valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                   charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
+                   videoParams=videoParams, noiseParams=noiseParams)
 trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 

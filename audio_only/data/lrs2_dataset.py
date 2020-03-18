@@ -52,11 +52,12 @@ class LRS2Main(Dataset):
     A custom dataset class for the LRS2 main (includes train, val, test) dataset
     """
 
-    def __init__(self, dataset, datadir, charToIx, stepSize, audioParams):
+    def __init__(self, dataset, datadir, reqInpLen, charToIx, stepSize, audioParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
             lines = f.readlines()
         self.datalist = [datadir + "/main/" + line.strip().split(" ")[0] for line in lines]
+        self.reqInpLen = reqInpLen
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
@@ -75,7 +76,7 @@ class LRS2Main(Dataset):
         #passing the audio file and the target file paths to the prepare function to obtain the input tensors 
         audioFile = self.datalist[index] + ".wav"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, self.charToIx, self.audioParams)
+        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, self.reqInpLen, self.charToIx, self.audioParams)
         return inp, trgt, inpLen, trgtLen
 
 

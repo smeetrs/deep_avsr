@@ -60,8 +60,8 @@ def lrs2pretrain_checker():
 
 def lrs2main_checker():
     audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                         stepSize=args["STEP_SIZE"], audioParams=audioParams)
+    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                         charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]

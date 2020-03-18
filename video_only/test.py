@@ -23,8 +23,8 @@ torch.backends.cudnn.benchmark = False
 
 #declaring the test dataset and test dataloader
 videoParams={"videoFPS":args["VIDEO_FPS"]}
-testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], 
-                    stepSize=args["STEP_SIZE"], videoParams=videoParams)
+testData = LRS2Main(dataset="test", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                    charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
 testLoader = DataLoader(testData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 

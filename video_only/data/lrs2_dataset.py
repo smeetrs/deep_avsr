@@ -53,11 +53,12 @@ class LRS2Main(Dataset):
     A custom dataset class for the LRS2 main (includes train, val, test) dataset
     """
 
-    def __init__(self, dataset, datadir, charToIx, stepSize, videoParams):
+    def __init__(self, dataset, datadir, reqInpLen, charToIx, stepSize, videoParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
             lines = f.readlines()
         self.datalist = [datadir + "/main/" + line.strip().split(" ")[0] for line in lines]
+        self.reqInpLen = reqInpLen
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
@@ -76,7 +77,7 @@ class LRS2Main(Dataset):
         #passing the visual features file and the target file paths to the prepare function to obtain the input tensors 
         visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, self.charToIx, self.videoParams)
+        inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, self.reqInpLen, self.charToIx, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 

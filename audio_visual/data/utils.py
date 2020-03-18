@@ -8,7 +8,7 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, charToIx, noiseSNR, audioParams, videoParams):
+def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, reqInpLen, charToIx, noiseSNR, audioParams, videoParams):
     
     """
     Function to convert the data sample in the main dataset into appropriate tensors.
@@ -25,9 +25,9 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, charToI
     trgt = np.array(trgt)
     trgtLen = len(trgt)
 
-    #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
-    if trgtLen > 256:
-        print("Max target length reached. Exiting")
+    #the target length must be less than or equal to 100 characters (restricted space where our model will work)
+    if trgtLen > 100:
+        print("Target length more than 100 characters. Exiting")
         exit()
 
 
@@ -76,9 +76,8 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, charToI
         audInp = np.pad(audInp, ((0,padding),(0,0)), "constant")
 
 
-    #checking whether the input length is greater than or equal to the target length (#characters)
+    #checking whether the input length is greater than or equal to the max target length (#characters)
     #if not, extending the input by repeating random feature vectors
-    reqInpLen = req_input_length(trgt)
     if inpLen < reqInpLen:
         indices = np.arange(inpLen)
         np.random.shuffle(indices)
@@ -124,7 +123,7 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
         trgtNWord = trgt
         #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
         if len(trgtNWord)+1 > 256:
-            print("Max target length reached. Exiting")
+            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         sampFreq, inputAudio = wavfile.read(audioFile)
         #loading visual features
@@ -137,7 +136,7 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
         #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
         nWordLens[nWordLens > 256] = -np.inf
         if np.all(nWordLens == -np.inf):
-            print("Max target length reached. Exiting")
+            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         
         #choose the sub-sequence for target according to a softmax distribution of the lengths

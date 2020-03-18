@@ -1,3 +1,22 @@
+"""
+Specifications:
+
+Videofile - demofile.mp4
+Properties - 25 fps, 160x160 RGB frames, Mouth approx. in center,
+             face size should be comparable to frame size
+
+Targetfile - demofile.txt
+Content -
+Text:  THIS SENTENCES IS ONLY FOR DEMO PURPOSE
+Note - Target length <= 100 characters. 
+
+In real world long videos, each video can be appropriately segmented into clips of appropriate length 
+depending on the speaking rate of the speaker. For a speaker with around 160 words per min, 
+and 6 characters per word (including space) on average, clip lengths should be around 6 secs.
+A prediction concatenating algorithm would be needed to get the final prediction for the complete 
+video in such cases. 
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -47,7 +66,8 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
             #converting the data sample into appropriate tensors for input to the model
             audioFile = os.path.join(root, file[:-4]) + ".wav"
             audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["CHAR_TO_INDEX"], audioParams)
+            inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], 
+                                                            audioParams)
             inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 
             #running the model
@@ -78,7 +98,11 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
             else:
                 print("Invalid Decode Scheme")
                 exit()
-
+            
+            #computing CER and WER
+            cer = compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
+            wer = compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, spaceIx=args["CHAR_TO_INDEX"][" "])
+            
             #converting character indices back to characters
             pred = predictionBatch[:][:-1]
             trgt = targetBatch[:][:-1]
@@ -89,6 +113,7 @@ for root, dirs, files in os.walk(args["CODE_DIRECTORY"] + "/demo"):
             print("File: %s" %(file))
             print("Prediction: %s" %(pred))
             print("Target: %s" %(trgt))
+            print("CER: %.3f  WER: %.3f" %(cer, wer))
             print("\n")
 
 

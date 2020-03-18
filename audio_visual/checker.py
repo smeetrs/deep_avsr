@@ -68,8 +68,9 @@ def lrs2main_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
     noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                         audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
+    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
+                         charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
+                         videoParams=videoParams, noiseParams=noiseParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
