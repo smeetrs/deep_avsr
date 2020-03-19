@@ -34,7 +34,8 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
         
         optimizer.zero_grad()
         outputBatch = model(inputBatch)
-        loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
+        with torch.backends.cudnn.flags(enabled=False):
+            loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
         loss.backward()
         optimizer.step()
 
@@ -71,7 +72,8 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
             inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
             
             outputBatch = model(inputBatch)
-            loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
+            with torch.backends.cudnn.flags(enabled=False):
+                loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
 
             evalLoss = evalLoss + loss.item()
             if evalParams["decodeScheme"] == "greedy":
