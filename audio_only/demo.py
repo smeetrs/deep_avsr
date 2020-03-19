@@ -2,13 +2,17 @@
 Specifications:
 
 Videofile - demofile.mp4
-Properties - 25 fps, 160x160 RGB frames, Mouth approx. in center,
+Properties - Video:
+             25 fps, 160x160 RGB frames, Mouth approx. in center,
              face size should be comparable to frame size
+             Audio:
+             Mono audio, 16000 Hz sample rate
 
 Targetfile - demofile.txt
 Content -
-Text:  THIS SENTENCES IS ONLY FOR DEMO PURPOSE
-Note - Target length <= 100 characters. 
+Text:  THIS SENTENCE IS ONLY FOR DEMO PURPOSE A NUMBER LIKE 4 CAN ALSO BE USED
+Note - Target length <= 100 characters. All characters in capital and no punctuations other than 
+       an apostrophe (').
 
 In real world long videos, each video can be appropriately segmented into clips of appropriate length 
 depending on the speaking rate of the speaker. For a speaker with around 160 words per min, 
