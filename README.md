@@ -80,9 +80,9 @@ The Word Error Rates achieved by the models on the test set of the LRS2-BBC data
 
 | Model        | CTC Greedy Search | CTC Beam Search + LM |
 | ------------ | ----------------- | -------------------- |
-| Audio-only   | 15.5%             | 11.3%                |
-| Video-only   | 70.8%             | 60.4%                |
-| Audio-visual | 14.8%             | 9.8%                 |
+| Audio-only   | 15.5%             | 11.7%                |
+| Video-only   | 72.1%             | 62.7%                |
+| Audio-visual | 14.3%             | 10.5%                 |
 
 The WER of the Audio-visual model on the test set of LRS2-BBC dataset using CTC Beam Search + Language Model given in the paper is 8.2%. Since the authors of the paper pretrain the model using the LRS3-TED and MV-LRS datasets as well, the WER we achieved would be higher than 8.2%. However, with some minor modifications, a WER of about 9% can be achieved. The modifications that can be employed are as follows:
 
@@ -91,6 +91,7 @@ The WER of the Audio-visual model on the test set of LRS2-BBC dataset using CTC 
 - More finer curriculum learning steps
 - Hyperparameter search
 - Data Augmentation
+- Making CTC loss deterministic so that the results can be reproduced
 
 (To be done after getting some significant decrease in WER of the presently trained model)
 
