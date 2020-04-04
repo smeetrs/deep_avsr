@@ -84,14 +84,15 @@ The Word Error Rates achieved by the models on the test set of the LRS2-BBC data
 | Video-only   | 72.1%             | 62.7%                |
 | Audio-visual | 14.3%             | 10.5%                 |
 
-The WER of the Audio-visual model on the test set of LRS2-BBC dataset using CTC Beam Search + Language Model given in the paper is 8.2%. Since the authors of the paper pretrain the model using the LRS3-TED and MV-LRS datasets as well, the WER we achieved would be higher than 8.2%. However, with some minor modifications, a WER of about 9% can be achieved. The modifications that can be employed are as follows:
+The WER of the Audio-visual model on the test set of LRS2-BBC dataset using CTC Beam Search + Language Model given in the paper is 8.2%. Since the authors of the paper pretrain the model using the LRS3-TED and MV-LRS datasets as well, the WER we can achieve would always be higher than 8.2%. However, with some minor modifications, a WER of about 9% can be achieved. The modifications that can be employed are as follows:
 
 -  Adding regularization to the loss function
-- Pretraining the model up to 37 words (at 38 words, the PyTorch CTC loss function limit gets exceeded, however, using something like resampling if there's a bad sample, the model can be pretrained up to much more words)
-- More finer curriculum learning steps
+- Pretraining the model up to 37 words (the model can be pretrained up to much more words with some hacks) with more finer curriculum learning steps
 - Hyperparameter search
-- Data Augmentation
+- Data Augmentation and Noisy training
 - Making CTC loss deterministic so that the results can be reproduced
+- Optionally finetuning the visual frontend and the language model
+- Padding (in middle) instead of repeating
 
 (To be done after getting some significant decrease in WER of the presently trained model)
 
