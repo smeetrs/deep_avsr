@@ -48,9 +48,9 @@ def collate_fn_checker():
 
 def lrs2pretrain_checker():
     audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-    pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
-                                charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                                audioParams=audioParams)
+    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    pretrainData = LRS2Pretrain(args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                                audioParams, noiseParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
@@ -60,8 +60,9 @@ def lrs2pretrain_checker():
 
 def lrs2main_checker():
     audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
-                         charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams)
+    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    trainData = LRS2Main(dataset="train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                         audioParams, noiseParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
@@ -80,6 +81,7 @@ def lrs2main_max_inplen_checker():
                     trgt = f.readline().strip()[7:]
                 sampFreq, audio = wavfile.read(audioFile)
                 inpLen = (len(audio) - 640)//160 + 1
+                inpLen = int(np.ceil(inpLen/4))*4
                 reqLen = req_input_length(trgt)+1
                 if reqLen*4 > inpLen:
                     inpLen = reqLen*4
@@ -91,7 +93,10 @@ def lrs2main_max_inplen_checker():
 
 def trgtlen_distribution_checker():
     for dataset in ["pretrain","main"]:
-        distribution = np.zeros(2500, dtype=np.int)
+        if dataset == "pretrain":
+            distribution = np.zeros(2500, dtype=np.int)
+        else:
+            distribution = np.zeros(150, dtype=np.int)
         for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/" + dataset):
             for file in files:
                 if file.endswith(".mp4"):
@@ -115,7 +120,10 @@ def trgtlen_distribution_checker():
         plt.title("{} dataset target length distribution".format(dataset))
         plt.xlabel("Target Lengths")
         plt.ylabel("Counts")
-        plt.bar(np.arange(2500), distribution)
+        if dataset == "pretrain":
+            plt.bar(np.arange(2500), distribution)
+        else:
+            plt.bar(np.arange(150), distribution)
         plt.savefig(args["DATA_DIRECTORY"] + "/" + dataset + ".png")
         plt.close()
     return
@@ -174,6 +182,7 @@ def lrs2pretrain_max_inplen_checker():
                         exit()
                     sampFreq, audio = wavfile.read(audioFile)
                     inpLen = (len(audio) - 640)//160 + 1
+                    inpLen = int(np.ceil(inpLen/4))*4
                     reqLen = req_input_length(trgt)+1
                     if reqLen*4 > inpLen:
                         inpLen = reqLen*4
@@ -193,11 +202,10 @@ def lrs2pretrain_max_inplen_checker():
                         trgt = nWords[ix]
                         audioStartTime = float(lines[4+ix].split(" ")[1])
                         audioEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
-                        sampFreq, audio = wavfile.read(audioFile)
-                        inputAudio = audio[int(sampFreq*audioStartTime):int(sampFreq*audioEndTime)]
-                        inpLen = (len(inputAudio) - 640)//160 + 1
-                        if len(inputAudio) < (640 + 3*160):
+                        inpLen = ((int(sampFreq*audioEndTime)-int(sampFreq*audioStartTime)) - 640)//160 + 1
+                        if inpLen < 4:
                             inpLen = 4
+                        inpLen = int(np.ceil(inpLen/4))*4
                         reqLen = req_input_length(trgt)+1
                         if reqLen*4 > inpLen:
                             inpLen = reqLen*4
@@ -227,7 +235,7 @@ def ctc_greedy_decode_checker():
             outputProbs[i,n,ix] = 1.5
     outputLogProbs = torch.log_softmax(outputProbs, dim=2)
 
-    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
+    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, args["CHAR_TO_INDEX"]["<EOS>"])
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -261,16 +269,14 @@ def ctc_search_decode_checker():
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
                         "threshProb":args["THRESH_PROBABILITY"]}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args["USE_LM"]:
-        lm = LRS2CharLM().to(device)
-        lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-        lm.to(device)
-    else:
+    lm = LRS2CharLM()
+    lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
+    lm.to(device)
+    if not args["USE_LM"]:
         lm = None
 
-    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], 
-                                                    eosIx=args["CHAR_TO_INDEX"]["<EOS>"], lm=lm)
+    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, beamSearchParams, args["CHAR_TO_INDEX"][" "], 
+                                                    args["CHAR_TO_INDEX"]["<EOS>"], lm)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -283,10 +289,9 @@ def ctc_search_decode_checker():
 
 def lrs2charlm_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = LRS2CharLM().to(device)
-    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
+    model = LRS2CharLM()
+    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
     model.to(device)
-    model.eval()
 
     inp = torch.tensor(args["CHAR_TO_INDEX"][" "]-1)
     initStateBatch = None
@@ -294,6 +299,7 @@ def lrs2charlm_checker():
     for i in range(100):
         inputBatch = inp.reshape(1,1)
         inputBatch = inputBatch.to(device)
+        model.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
         
@@ -313,14 +319,12 @@ def lrs2charlm_checker():
 
 def audionet_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AudioNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
-                     numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
-                     inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-                     dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+    model = AudioNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+                     args["AUDIO_FEATURE_SIZE"], args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
     model.to(device)
-    model.eval()
     T, N, C = 42, args["BATCH_SIZE"], args["AUDIO_FEATURE_SIZE"]
     inputBatch = torch.rand(T, N, C).to(device)
+    model.eval()
     with torch.no_grad():
         outputBatch = model(inputBatch)
     print(outputBatch.shape)
@@ -362,7 +366,7 @@ def compute_wer_checker():
     predictionLenBatch = torch.tensor(predLens)
     targetLenBatch = torch.tensor(trgtLens)
 
-    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, spaceIx=args["CHAR_TO_INDEX"][" "]))
+    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, args["CHAR_TO_INDEX"][" "]))
     return
 
 

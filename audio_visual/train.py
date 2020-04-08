@@ -21,7 +21,7 @@ torch.manual_seed(args["SEED"])
 gpuAvailable = torch.cuda.is_available()
 device = torch.device("cuda" if gpuAvailable else "cpu")
 kwargs = {"num_workers": args["NUM_WORKERS"], "pin_memory": True} if gpuAvailable else {}
-torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
@@ -29,22 +29,18 @@ torch.backends.cudnn.benchmark = False
 audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
 videoParams={"videoFPS":args["VIDEO_FPS"]}
 noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
-                     charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
-                     videoParams=videoParams, noiseParams=noiseParams)
-noiseParams={"noiseFile":None, "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-valData = LRS2Main(dataset="val", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
-                   charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
-                   videoParams=videoParams, noiseParams=noiseParams)
+trainData = LRS2Main(dataset="train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                     audioParams, videoParams, noiseParams)
+noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":0, "noiseSNR":args["NOISE_SNR_DB"]}
+valData = LRS2Main(dataset="val", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                   audioParams, videoParams, noiseParams)
 trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
 #declaring the model, optimizer, scheduler and the loss function
-model = AVNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
-              numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
-              inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-              dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+model = AVNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+              args["AUDIO_FEATURE_SIZE"], args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"], 
@@ -55,7 +51,6 @@ loss_function = nn.CTCLoss(blank=0, zero_infinity=False)
 
 #removing the checkpoints directory if it exists and remaking it
 if os.path.exists(args["CODE_DIRECTORY"] + "/checkpoints"):
-    
     while True:
         ch = input("Continue and remove the 'checkpoints' directory? y/n: ")
         if ch == "y":
@@ -73,10 +68,9 @@ os.mkdir(args["CODE_DIRECTORY"] + "/checkpoints/plots")
 
 #loading the pretrained weights
 if args["PRETRAINED_MODEL_FILE"] is not None:
-
     print("\n\nPre-trained Model File: %s" %(args["PRETRAINED_MODEL_FILE"]))
     print("\nLoading the pre-trained model .... \n")
-    model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"]))
+    model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"], map_location=device))
     model.to(device)
     print("Loading Done.\n")    
 
@@ -88,16 +82,16 @@ trainingWERCurve = list()
 validationWERCurve = list()
 
 
-print("\nTraining the model .... \n")
-
 #printing the total and trainable parameters in the model
 numTotalParams, numTrainableParams = num_params(model)
 print("Number of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
+
+print("\nTraining the model .... \n")
+
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
-
 
 for step in range(1, args["NUM_STEPS"]+1):
     

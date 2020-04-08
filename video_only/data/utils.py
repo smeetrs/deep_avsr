@@ -10,9 +10,7 @@ def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, vide
     
     """
     Function to convert the data sample (visual features file, target file) in the main dataset into appropriate tensors.
-    """
-    
-    videoFPS = videoParams["videoFPS"] 
+    """ 
 
     #reading the target from the target file and converting each character to its corresponding index
     with open(targetFile, "r") as f:
@@ -28,18 +26,18 @@ def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, vide
         print("Target length more than 100 characters. Exiting")
         exit()
 
+    
     #loading the visual features
-    inp = np.load(visualFeaturesFile)
+    inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
 
-    #checking whether the input length is greater than or equal to the max target length (#characters)
-    #if not, extending the input by repeating random feature vectors
-    if len(inp) < reqInpLen:
-        indices = np.arange(len(inp))
-        np.random.shuffle(indices)
-        repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
-        extras = (reqInpLen - len(inp)) % len(inp)
-        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
-        inp = inp[newIndices]
+    
+    #checking whether the input length is greater than or equal to the required length
+    #if not, extending the input by padding zero vectors
+    inpLen = len(inp)
+    if inpLen < reqInpLen:
+        leftPadding = int(np.floor((reqInpLen - inpLen)/2))
+        rightPadding = int(np.ceil((reqInpLen - inpLen)/2))
+        inp = np.pad(inp, ((leftPadding,rightPadding),(0,0)), "constant")
 
     inpLen = len(inp)
 
@@ -58,8 +56,6 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
     """
     Function to convert the data sample (visual features file, target file) in the pretrain dataset into appropriate tensors.
     """
-
-    videoFPS = videoParams["videoFPS"]
     
     #reading the whole target file and the target
     with open(targetFile, "r") as f:
@@ -77,7 +73,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
             print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         #loading the visual features
-        inp = np.load(visualFeaturesFile)
+        inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
 
     else:
         #make a list of all possible sub-sequences with required number of words in the target
@@ -99,7 +95,8 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         videoStartTime = float(lines[4+ix].split(" ")[1])
         videoEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
         #loading the visual features
-        inp = np.load(visualFeaturesFile)
+        videoFPS = videoParams["videoFPS"]
+        inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
         inp = inp[int(np.floor(videoFPS*videoStartTime)):int(np.ceil(videoFPS*videoEndTime))]
 
 
@@ -109,16 +106,15 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
     trgt = np.array(trgt)
     trgtLen = len(trgt)
     
-    #checking whether the input length is greater than or equal to the target length (#characters)
-    #if not, extending the input by repeating random feature vectors
+    
+    #checking whether the input length is greater than or equal to the required length
+    #if not, extending the input by padding zero vectors
+    inpLen = len(inp)
     reqInpLen = req_input_length(trgt)
-    if len(inp) < reqInpLen:
-        indices = np.arange(len(inp))
-        np.random.shuffle(indices)
-        repetitions = int((reqInpLen - len(inp))/len(inp)) + 1
-        extras = (reqInpLen - len(inp)) % len(inp)
-        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
-        inp = inp[newIndices]
+    if inpLen < reqInpLen:
+        leftPadding = int(np.floor((reqInpLen - inpLen)/2))
+        rightPadding = int(np.ceil((reqInpLen - inpLen)/2))
+        inp = np.pad(inp, ((leftPadding,rightPadding),(0,0)), "constant")
 
     inpLen = len(inp)
     

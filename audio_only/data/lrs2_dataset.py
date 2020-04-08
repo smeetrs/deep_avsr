@@ -1,9 +1,10 @@
-import torch
 from torch.utils.data import Dataset
+from scipy.io import wavfile
 import numpy as np
 
 from .utils import prepare_pretrain_input
 from .utils import prepare_main_input
+
 
 
 class LRS2Pretrain(Dataset):
@@ -12,7 +13,7 @@ class LRS2Pretrain(Dataset):
     A custom dataset class for the LRS2 pretrain dataset.
     """
 
-    def __init__(self, datadir, numWords, charToIx, stepSize, audioParams):
+    def __init__(self, datadir, numWords, charToIx, stepSize, audioParams, noiseParams):
         super(LRS2Pretrain, self).__init__()
         with open(datadir + "/pretrain.txt", "r") as f:
             lines = f.readlines()
@@ -21,6 +22,9 @@ class LRS2Pretrain(Dataset):
         self.charToIx = charToIx
         self.stepSize = stepSize
         self.audioParams = audioParams
+        _, self.noise = wavfile.read(noiseParams["noiseFile"])
+        self.noiseProb = noiseParams["noiseProb"]
+        self.noiseSNR = noiseParams["noiseSNR"]
         return
         
 
@@ -36,7 +40,12 @@ class LRS2Pretrain(Dataset):
         #passing the audio file and the target file paths to the prepare function to obtain the input tensors 
         audioFile = self.datalist[index] + ".wav"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, targetFile, self.numWords, self.charToIx, self.audioParams)
+        if np.random.choice([True, False], p=[self.noiseProb, 1-self.noiseProb]):
+            noise = self.noise
+        else:
+            noise = None
+        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, targetFile, noise, self.numWords, self.charToIx, self.noiseSNR, 
+                                                            self.audioParams)
         return inp, trgt, inpLen, trgtLen
 
 
@@ -52,7 +61,7 @@ class LRS2Main(Dataset):
     A custom dataset class for the LRS2 main (includes train, val, test) dataset
     """
 
-    def __init__(self, dataset, datadir, reqInpLen, charToIx, stepSize, audioParams):
+    def __init__(self, dataset, datadir, reqInpLen, charToIx, stepSize, audioParams, noiseParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
             lines = f.readlines()
@@ -62,6 +71,9 @@ class LRS2Main(Dataset):
         self.dataset = dataset
         self.stepSize = stepSize
         self.audioParams = audioParams
+        _, self.noise = wavfile.read(noiseParams["noiseFile"])
+        self.noiseSNR = noiseParams["noiseSNR"]
+        self.noiseProb = noiseParams["noiseProb"]
         return
         
 
@@ -76,7 +88,12 @@ class LRS2Main(Dataset):
         #passing the audio file and the target file paths to the prepare function to obtain the input tensors 
         audioFile = self.datalist[index] + ".wav"
         targetFile = self.datalist[index] + ".txt"
-        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, self.reqInpLen, self.charToIx, self.audioParams)
+        if np.random.choice([True, False], p=[self.noiseProb, 1-self.noiseProb]):
+            noise = self.noise
+        else:
+            noise = None
+        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, noise, self.reqInpLen, self.charToIx, self.noiseSNR, 
+                                                        self.audioParams)
         return inp, trgt, inpLen, trgtLen
 
 

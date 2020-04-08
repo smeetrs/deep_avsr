@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from itertools import groupby
 
+
 np.seterr(divide="ignore")
 
 
@@ -44,7 +45,6 @@ def ctc_greedy_decode(outputBatch, inputLenBatch, eosIx, blank=0):
 
 
 
-
 class BeamEntry:
     """
     Class for a single entry in the beam.
@@ -59,6 +59,7 @@ class BeamEntry:
         self.labeling = tuple()
 
 
+
 class BeamState:
     
     """
@@ -69,6 +70,7 @@ class BeamState:
         self.entries = dict()
         self.alpha = alpha
         self.beta = beta
+
 
     def score(self, entry):
         """
@@ -81,6 +83,7 @@ class BeamState:
             score = (entry.logPrTotal + self.alpha*entry.logPrText)/(labelingLen**self.beta)
         return score
 
+
     def sort(self):
         """
         Function to sort all the beam entries in descending order depending on their scores.
@@ -88,6 +91,7 @@ class BeamState:
         beams = [entry for (key, entry) in self.entries.items()]
         sortedBeams = sorted(beams, reverse=True, key=self.score)
         return [x.labeling for x in sortedBeams]
+
 
 
 def apply_lm(parentBeam, childBeam, spaceIx, lm):
@@ -99,7 +103,6 @@ def apply_lm(parentBeam, childBeam, spaceIx, lm):
 
     if not (childBeam.lmApplied):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        lm.eval()
         if parentBeam.lmState == None:
             initStateBatch = None
             inputBatch = torch.tensor(spaceIx-1).reshape(1,1)
@@ -108,6 +111,7 @@ def apply_lm(parentBeam, childBeam, spaceIx, lm):
             initStateBatch = parentBeam.lmState
             inputBatch = torch.tensor(parentBeam.labeling[-1]-1).reshape(1,1)
             inputBatch = inputBatch.to(device) 
+        lm.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = lm(inputBatch, initStateBatch)
         logProbs = outputBatch.squeeze()
@@ -118,12 +122,14 @@ def apply_lm(parentBeam, childBeam, spaceIx, lm):
     return
 
 
+
 def add_beam(beamState, labeling):
     """
     Function to add a new entry to the beam.
     """
     if labeling not in beamState.entries.keys():
         beamState.entries[labeling] = BeamEntry()
+
 
 
 def log_add(a, b):
@@ -135,8 +141,7 @@ def log_add(a, b):
 
 
 
-
-def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eosIx, lm=None, blank=0):
+def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eosIx, lm, blank=0):
 
     """
     Applies the CTC beam search decoding along with a character-level language model.
@@ -169,7 +174,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
         maxT, maxC = mat.shape
 
         #initializing the main beam with a single entry having empty prediction
-        last = BeamState(alpha=alpha, beta=beta)
+        last = BeamState(alpha, beta)
         labeling = tuple()
         last.entries[labeling] = BeamEntry()
         last.entries[labeling].logPrBlank = 0
@@ -180,7 +185,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
 
             #a temporary beam to store all possible predictions (which are extensions of predictions 
             #in the main beam after time step t-1) after time step t 
-            curr = BeamState(alpha=alpha, beta=beta)
+            curr = BeamState(alpha, beta)
             #considering only the characters with probability above a certain threshold to speeden up the algo
             prunedChars = np.where(mat[t,:] > np.log(threshProb))[0]
 
@@ -228,7 +233,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
                     curr.entries[newLabeling].logPrTotal = log_add(curr.entries[newLabeling].logPrTotal, logPrNonBlank)
                     
                     #applying language model
-                    if lm != None:
+                    if lm is not None:
                         apply_lm(curr.entries[labeling], curr.entries[newLabeling], spaceIx, lm)
 
             #replacing the main beam with the temporary beam having extended predictions

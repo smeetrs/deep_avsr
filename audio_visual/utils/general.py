@@ -1,8 +1,8 @@
 import torch
-import numpy as np
 
 from .metrics import compute_cer, compute_wer
 from .decoders import ctc_greedy_decode, ctc_search_decode
+
 
 
 def num_params(model):
@@ -22,7 +22,6 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
     It also computes the training loss, CER and WER. The CTC decode scheme is always 'greedy' here.
     """
 
-    model.train()
     trainingLoss = 0
     trainingCER = 0
     trainingWER = 0
@@ -33,6 +32,7 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
         
         optimizer.zero_grad()
+        model.train()
         outputBatch = model(inputBatch)
         with torch.backends.cudnn.flags(enabled=False):
             loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
@@ -40,11 +40,9 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
         optimizer.step()
 
         trainingLoss = trainingLoss + loss.item()
-        predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch.detach(), inputLenBatch, 
-                                                                eosIx=trainParams["eosIx"])
+        predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch.detach(), inputLenBatch, trainParams["eosIx"])
         trainingCER = trainingCER + compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
-        trainingWER = trainingWER + compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, 
-                                                spaceIx=trainParams["spaceIx"])
+        trainingWER = trainingWER + compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, trainParams["spaceIx"])
     
     trainingLoss = trainingLoss/len(trainLoader)
     trainingCER = trainingCER/len(trainLoader)
@@ -60,37 +58,33 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
     The CTC decode scheme can be set to either 'greedy' or 'search'. 
     """
 
-    model.eval()
     evalLoss = 0
     evalCER = 0
     evalWER = 0
     
-    with torch.no_grad():
-        for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(evalLoader):
-            
-            inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
-            inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
-            
+    for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(evalLoader):
+        
+        inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
+        inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
+        
+        model.eval()
+        with torch.no_grad():
             outputBatch = model(inputBatch)
             with torch.backends.cudnn.flags(enabled=False):
                 loss = loss_function(outputBatch, targetBatch, inputLenBatch, targetLenBatch)
 
-            evalLoss = evalLoss + loss.item()
-            if evalParams["decodeScheme"] == "greedy":
-                predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch,
-                                                                        eosIx=evalParams["eosIx"])
-            elif evalParams["decodeScheme"] == "search":
-                predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch,
-                                                                        beamSearchParams=evalParams["beamSearchParams"],  
-                                                                        spaceIx=evalParams["spaceIx"], 
-                                                                        eosIx=evalParams["eosIx"], lm=evalParams["lm"])
-            else:
-                print("Invalid Decode Scheme")
-                exit()
-            
-            evalCER = evalCER + compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
-            evalWER = evalWER + compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch,
-                                            spaceIx=evalParams["spaceIx"])
+        evalLoss = evalLoss + loss.item()
+        if evalParams["decodeScheme"] == "greedy":
+            predictionBatch, predictionLenBatch = ctc_greedy_decode(outputBatch, inputLenBatch, evalParams["eosIx"])
+        elif evalParams["decodeScheme"] == "search":
+            predictionBatch, predictionLenBatch = ctc_search_decode(outputBatch, inputLenBatch, evalParams["beamSearchParams"],  
+                                                                    evalParams["spaceIx"], evalParams["eosIx"], evalParams["lm"])
+        else:
+            print("Invalid Decode Scheme")
+            exit()
+        
+        evalCER = evalCER + compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
+        evalWER = evalWER + compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, evalParams["spaceIx"])
 
     evalLoss = evalLoss/len(evalLoader)
     evalCER = evalCER/len(evalLoader)

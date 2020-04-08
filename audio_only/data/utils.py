@@ -7,7 +7,7 @@ from scipy.special import softmax
 
 
 
-def prepare_main_input(audioFile, targetFile, reqInpLen, charToIx, audioParams):
+def prepare_main_input(audioFile, targetFile, noise, reqInpLen, charToIx, noiseSNR, audioParams):
     
     """
     Function to convert the data sample (audio file, target file) in the main dataset into appropriate tensors.
@@ -33,30 +33,46 @@ def prepare_main_input(audioFile, targetFile, reqInpLen, charToIx, audioParams):
     stftWinLen = audioParams["stftWinLen"]
     stftOverlap = audioParams["stftOverlap"]
     sampFreq, inputAudio = wavfile.read(audioFile)
+    
     #pad the audio to get atleast 4 STFT vectors
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    #normalising the audio to unit power
     inputAudio = inputAudio/np.max(np.abs(inputAudio))
+    
+    #adding noise to the audio
+    if noise is not None:
+        pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
+        noise = noise[pos:pos+len(inputAudio)]
+        noise = noise/np.max(np.abs(noise))
+        gain = 10**(noiseSNR/10)
+        noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
+        inputAudio = inputAudio + noise
+    
+    #normalising the audio to unit power
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
     
     #computing STFT and taking only the magnitude of it        
-    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
-                                 noverlap=sampFreq*stftOverlap, boundary=None, padded=False)
+    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, noverlap=sampFreq*stftOverlap, 
+                                 boundary=None, padded=False)
     inp = np.abs(stftVals)
     inp = inp.T
 
-    #checking whether the input length is greater than or equal to the max target length (#characters)
-    #if not, extending the input by repeating random feature vectors
-    if int(len(inp)/4) < reqInpLen:
-        indices = np.arange(len(inp))
-        np.random.shuffle(indices)
-        repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
-        extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
-        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
-        inp = inp[newIndices]
 
+    #padding zero vectors to make the input length a multiple of 4
+    inpLen = int(np.ceil(len(inp)/4))
+    leftPadding = int(np.floor((4*inpLen - len(inp))/2))
+    rightPadding = int(np.ceil((4*inpLen - len(inp))/2))    
+    inp = np.pad(inp, ((leftPadding,rightPadding),(0,0)), "constant")
+
+    
+    #checking whether the input length is greater than or equal to the required length
+    #if not, extending the input by padding zero vectors
+    if inpLen < reqInpLen:
+        leftPadding = int(np.floor((reqInpLen - inpLen)/2))
+        rightPadding = int(np.ceil((reqInpLen - inpLen)/2))
+        inp = np.pad(inp, ((4*leftPadding,4*rightPadding),(0,0)), "constant")
+        
     inpLen = int(len(inp)/4)
 
 
@@ -69,7 +85,7 @@ def prepare_main_input(audioFile, targetFile, reqInpLen, charToIx, audioParams):
 
 
 
-def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, audioParams):
+def prepare_pretrain_input(audioFile, targetFile, noise, numWords, charToIx, noiseSNR, audioParams):
     
     """
     Function to convert the data sample (audio file, target file) in the pretrain dataset into appropriate tensors.
@@ -126,30 +142,46 @@ def prepare_pretrain_input(audioFile, targetFile, numWords, charToIx, audioParam
     stftWindow = audioParams["stftWindow"]
     stftWinLen = audioParams["stftWinLen"]
     stftOverlap = audioParams["stftOverlap"]
+    
     #pad the audio to get atleast 4 STFT vectors
     if len(inputAudio) < sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)):
         padding = int(np.ceil((sampFreq*(stftWinLen + 3*(stftWinLen - stftOverlap)) - len(inputAudio))/2))
         inputAudio = np.pad(inputAudio, padding, "constant")
-    #normalising the audio to unit power
     inputAudio = inputAudio/np.max(np.abs(inputAudio))
+    
+    #adding noise to the audio
+    if noise is not None:
+        pos = np.random.randint(0, len(noise)-len(inputAudio)+1)
+        noise = noise[pos:pos+len(inputAudio)]
+        noise = noise/np.max(np.abs(noise))
+        gain = 10**(noiseSNR/10)
+        noise = noise*np.sqrt(np.sum(inputAudio**2)/(gain*np.sum(noise**2)))
+        inputAudio = inputAudio + noise
+    
+    #normalising the audio to unit power
     inputAudio = inputAudio/np.sqrt(np.sum(inputAudio**2)/len(inputAudio))
 
     #computing the STFT and taking only the magnitude of it
-    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, 
-                                 noverlap=sampFreq*stftOverlap, boundary=None, padded=False)
+    _, _, stftVals = signal.stft(inputAudio, sampFreq, window=stftWindow, nperseg=sampFreq*stftWinLen, noverlap=sampFreq*stftOverlap, 
+                                 boundary=None, padded=False)
     inp = np.abs(stftVals)
     inp = inp.T
 
-    #checking whether the input length is greater than or equal to the target length (#characters)
-    #if not, extending the input by repeating random feature vectors
+
+    #padding zero vectors to make the input length a multiple of 4
+    inpLen = int(np.ceil(len(inp)/4))
+    leftPadding = int(np.floor((4*inpLen - len(inp))/2))
+    rightPadding = int(np.ceil((4*inpLen - len(inp))/2))    
+    inp = np.pad(inp, ((leftPadding,rightPadding),(0,0)), "constant")
+
+    
+    #checking whether the input length is greater than or equal to the required length
+    #if not, extending the input by padding zero vectors
     reqInpLen = req_input_length(trgt)
-    if int(len(inp)/4) < reqInpLen:
-        indices = np.arange(len(inp))
-        np.random.shuffle(indices)
-        repetitions = int(((reqInpLen - int(len(inp)/4))*4)/len(inp)) + 1
-        extras = ((reqInpLen - int(len(inp)/4))*4) % len(inp)
-        newIndices = np.sort(np.concatenate([np.repeat(indices, repetitions), indices[:extras]]))
-        inp = inp[newIndices]
+    if inpLen < reqInpLen:
+        leftPadding = int(np.floor((reqInpLen - inpLen)/2))
+        rightPadding = int(np.ceil((reqInpLen - inpLen)/2))
+        inp = np.pad(inp, ((4*leftPadding,4*rightPadding),(0,0)), "constant")
 
     inpLen = int(len(inp)/4)
 

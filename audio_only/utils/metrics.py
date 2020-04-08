@@ -3,6 +3,7 @@ import numpy as np
 import editdistance
 
 
+
 def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch):
 
     """

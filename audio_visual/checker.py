@@ -54,8 +54,8 @@ def lrs2pretrain_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
     noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-    pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], charToIx=args["CHAR_TO_INDEX"], 
-                                stepSize=args["STEP_SIZE"], audioParams=audioParams, videoParams=videoParams, noiseParams=noiseParams)
+    pretrainData = LRS2Pretrain(args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                                audioParams, videoParams, noiseParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
@@ -68,9 +68,8 @@ def lrs2main_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
     noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
-                         charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], audioParams=audioParams, 
-                         videoParams=videoParams, noiseParams=noiseParams)
+    trainData = LRS2Main(dataset="train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                         audioParams, videoParams, noiseParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
@@ -216,10 +215,8 @@ def lrs2pretrain_max_inplen_checker():
                         trgt = nWords[ix]
                         startTime = float(lines[4+ix].split(" ")[1])
                         endTime = float(lines[4+ix+numWords-1].split(" ")[2])
-                        sampFreq, audio = wavfile.read(audioFile)
-                        inputAudio = audio[int(sampFreq*startTime):int(sampFreq*endTime)]
-                        audInpLen = (len(inputAudio) - 640)//160 + 1
-                        if len(inputAudio) < (640 + 3*160):
+                        audInpLen = ((int(sampFreq*endTime)-int(sampFreq*startTime)) - 640)//160 + 1
+                        if audInpLen < 4:
                             audInpLen = 4
                         vidInpLen = int(np.ceil(args["VIDEO_FPS"]*endTime) - np.floor(args["VIDEO_FPS"]*startTime))
                         if vidInpLen >= audInpLen/4:
@@ -255,7 +252,7 @@ def ctc_greedy_decode_checker():
             outputProbs[i,n,ix] = 1.5
     outputLogProbs = torch.log_softmax(outputProbs, dim=2)
 
-    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
+    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, args["CHAR_TO_INDEX"]["<EOS>"])
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -289,16 +286,14 @@ def ctc_search_decode_checker():
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
                         "threshProb":args["THRESH_PROBABILITY"]}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args["USE_LM"]:
-        lm = LRS2CharLM().to(device)
-        lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-        lm.to(device)
-    else:
+    lm = LRS2CharLM()
+    lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
+    lm.to(device)
+    if not args["USE_LM"]:
         lm = None
 
-    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], 
-                                                    eosIx=args["CHAR_TO_INDEX"]["<EOS>"], lm=lm)
+    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, beamSearchParams, args["CHAR_TO_INDEX"][" "], 
+                                                    args["CHAR_TO_INDEX"]["<EOS>"], lm)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -311,10 +306,9 @@ def ctc_search_decode_checker():
 
 def lrs2charlm_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = LRS2CharLM().to(device)
-    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
+    model = LRS2CharLM()
+    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
     model.to(device)
-    model.eval()
 
     inp = torch.tensor(args["CHAR_TO_INDEX"][" "]-1)
     initStateBatch = None
@@ -322,6 +316,7 @@ def lrs2charlm_checker():
     for i in range(100):
         inputBatch = inp.reshape(1,1)
         inputBatch = inputBatch.to(device)
+        model.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
         
@@ -341,17 +336,17 @@ def lrs2charlm_checker():
 
 def avnet_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AVNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], 
-                  numLayers=args["TX_NUM_LAYERS"], peMaxLen=args["PE_MAX_LENGTH"], 
-                  inSize=args["AUDIO_FEATURE_SIZE"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], 
-                  dropout=args["TX_DROPOUT"], numClasses=args["NUM_CLASSES"])
+    model = AVNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+                  args["AUDIO_FEATURE_SIZE"], args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
     model.to(device)
     T, N, C = 40, args["BATCH_SIZE"], args["AUDIO_FEATURE_SIZE"]
     audioInputBatch = torch.rand(T, N, C).to(device)
     T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"]
     videoInputBatch = torch.rand(T, N, C).to(device)
     inputBatch = (audioInputBatch,videoInputBatch)
-    outputBatch = model(inputBatch)
+    model.eval()
+    with torch.no_grad():
+        outputBatch = model(inputBatch)
     print(outputBatch.shape)
     return
 
@@ -360,9 +355,9 @@ def visualfrontend_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = VisualFrontend().to(device)
     model.to(device)
-    model.eval()
     T, N, C, H, W = 10, args["BATCH_SIZE"], 1, args["ROI_SIZE"], args["ROI_SIZE"]
     inputBatch = torch.rand(T, N, C, H, W).to(device)
+    model.eval()
     with torch.no_grad():
         outputBatch = model(inputBatch)
     print(outputBatch.shape)
@@ -404,7 +399,7 @@ def compute_wer_checker():
     predictionLenBatch = torch.tensor(predLens)
     targetLenBatch = torch.tensor(trgtLens)
 
-    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, spaceIx=args["CHAR_TO_INDEX"][" "]))
+    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, args["CHAR_TO_INDEX"][" "]))
     return
 
 
@@ -448,10 +443,9 @@ def compute_cer_checker():
 
 def preprocess_sample_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    vf = VisualFrontend().to(device)
-    vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
+    vf = VisualFrontend()
+    vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"], map_location=device))
     vf.to(device)
-    vf.eval()
     file = args["CODE_DIRECTORY"] + "/demo/00001"
     params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
     preprocess_sample(file, params)

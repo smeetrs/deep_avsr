@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import math
 
 
+
 class PositionalEncoding(nn.Module):
 
     """
@@ -22,6 +23,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 1::2] = torch.cos(position/denominator)
         pe = pe.unsqueeze(dim=0).transpose(0, 1)
         self.register_buffer("pe", pe)
+
 
     def forward(self, inputBatch):
         outputBatch = inputBatch + self.pe[:inputBatch.shape[0],:,:]
@@ -50,6 +52,7 @@ class AudioNet(nn.Module):
         self.audioDecoder = nn.TransformerEncoder(encoderLayer, num_layers=numLayers)
         self.outputConv = nn.Conv1d(dModel, numClasses, kernel_size=1, stride=1, padding=0)
         return
+
 
     def forward(self, inputBatch):
         inputBatch = inputBatch.transpose(0, 1).transpose(1, 2)

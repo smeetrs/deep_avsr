@@ -24,6 +24,7 @@ class PositionalEncoding(nn.Module):
         pe = pe.unsqueeze(dim=0).transpose(0, 1)
         self.register_buffer("pe", pe)
 
+
     def forward(self, inputBatch):
         outputBatch = inputBatch + self.pe[:inputBatch.shape[0],:,:]
         return outputBatch
@@ -49,6 +50,7 @@ class VideoNet(nn.Module):
         self.videoDecoder = nn.TransformerEncoder(encoderLayer, num_layers=numLayers)
         self.outputConv = nn.Conv1d(dModel, numClasses, kernel_size=1, stride=1, padding=0)
         return
+
 
     def forward(self, inputBatch):
         batch = self.positionalEncoding(inputBatch)

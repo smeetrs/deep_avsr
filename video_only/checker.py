@@ -48,9 +48,7 @@ def collate_fn_checker():
 
 def lrs2pretrain_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"]}
-    pretrainData = LRS2Pretrain(datadir=args["DATA_DIRECTORY"], numWords=args["PRETRAIN_NUM_WORDS"], 
-                                charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], 
-                                videoParams=videoParams)
+    pretrainData = LRS2Pretrain(args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], videoParams)
     numSamples = len(pretrainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = pretrainData[index]
@@ -60,8 +58,8 @@ def lrs2pretrain_checker():
 
 def lrs2main_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"]}
-    trainData = LRS2Main(dataset="train", datadir=args["DATA_DIRECTORY"], reqInpLen=args["MAIN_REQ_INPUT_LENGTH"], 
-                         charToIx=args["CHAR_TO_INDEX"], stepSize=args["STEP_SIZE"], videoParams=videoParams)
+    trainData = LRS2Main(dataset="train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                         videoParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
     inp, trgt, inpLen, trgtLen = trainData[index]
@@ -74,12 +72,12 @@ def lrs2main_max_inplen_checker():
     for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/main"):
         for file in files:
             if file.endswith(".mp4"):
-                roiFile = os.path.join(root, file[:-4]) + ".png"
+                visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     trgt = f.readline().strip()[7:]
-                roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-                inpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                visualFeatures = np.load(visualFeaturesFile)
+                inpLen = len(visualFeatures)
                 reqLen = req_input_length(trgt)+1
                 if reqLen > inpLen:
                     inpLen = reqLen
@@ -91,7 +89,10 @@ def lrs2main_max_inplen_checker():
 
 def trgtlen_distribution_checker():
     for dataset in ["pretrain","main"]:
-        distribution = np.zeros(2500, dtype=np.int)
+        if dataset == "pretrain":
+            distribution = np.zeros(2500, dtype=np.int)
+        else:
+            distribution = np.zeros(150, dtype=np.int)
         for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/" + dataset):
             for file in files:
                 if file.endswith(".mp4"):
@@ -115,7 +116,10 @@ def trgtlen_distribution_checker():
         plt.title("{} dataset target length distribution".format(dataset))
         plt.xlabel("Target Lengths")
         plt.ylabel("Counts")
-        plt.bar(np.arange(2500), distribution)
+        if dataset == "pretrain":
+            plt.bar(np.arange(2500), distribution)
+        else:
+            plt.bar(np.arange(150), distribution)
         plt.savefig(args["DATA_DIRECTORY"] + "/" + dataset + ".png")
         plt.close()
     return
@@ -160,7 +164,7 @@ def lrs2pretrain_max_inplen_checker():
         for file in files:
             if file.endswith(".mp4"):
 
-                roiFile = os.path.join(root, file[:-4]) + ".png"
+                visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 targetFile = os.path.join(root, file[:-4]) + ".txt"
                 with open(targetFile, "r") as f:
                     lines = f.readlines()
@@ -172,8 +176,8 @@ def lrs2pretrain_max_inplen_checker():
                     if len(trgt)+1 > 256:
                         print("Max target length reached. Exiting")
                         exit()
-                    roiSequence = cv.imread(roiFile, cv.IMREAD_GRAYSCALE)
-                    inpLen = int(roiSequence.shape[1]/args["ROI_SIZE"])
+                    visualFeatures = np.load(visualFeaturesFile)
+                    inpLen = len(visualFeatures)
                     reqLen = req_input_length(trgt)+1
                     if reqLen > inpLen:
                         inpLen = reqLen
@@ -223,7 +227,7 @@ def ctc_greedy_decode_checker():
             outputProbs[i,n,ix] = 1.5
     outputLogProbs = torch.log_softmax(outputProbs, dim=2)
 
-    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, eosIx=args["CHAR_TO_INDEX"]["<EOS>"])
+    predictions, predictionLens = ctc_greedy_decode(outputLogProbs, inpLens, args["CHAR_TO_INDEX"]["<EOS>"])
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -257,16 +261,14 @@ def ctc_search_decode_checker():
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"],
                         "threshProb":args["THRESH_PROBABILITY"]}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args["USE_LM"]:
-        lm = LRS2CharLM().to(device)
-        lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
-        lm.to(device)
-    else:
+    lm = LRS2CharLM()
+    lm.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
+    lm.to(device)
+    if not args["USE_LM"]:
         lm = None
 
-    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, 
-                                                    beamSearchParams, spaceIx=args["CHAR_TO_INDEX"][" "], 
-                                                    eosIx=args["CHAR_TO_INDEX"]["<EOS>"], lm=lm)
+    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, beamSearchParams, args["CHAR_TO_INDEX"][" "], 
+                                                    args["CHAR_TO_INDEX"]["<EOS>"], lm)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
     s = 0
@@ -279,10 +281,9 @@ def ctc_search_decode_checker():
 
 def lrs2charlm_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = LRS2CharLM().to(device)
-    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"]))
+    model = LRS2CharLM()
+    model.load_state_dict(torch.load(args["TRAINED_LM_FILE"], map_location=device))
     model.to(device)
-    model.eval()
 
     inp = torch.tensor(args["CHAR_TO_INDEX"][" "]-1)
     initStateBatch = None
@@ -290,6 +291,7 @@ def lrs2charlm_checker():
     for i in range(100):
         inputBatch = inp.reshape(1,1)
         inputBatch = inputBatch.to(device)
+        model.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
         
@@ -309,13 +311,12 @@ def lrs2charlm_checker():
 
 def videonet_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = VideoNet(dModel=args["TX_NUM_FEATURES"], nHeads=args["TX_ATTENTION_HEADS"], numLayers=args["TX_NUM_LAYERS"], 
-                     peMaxLen=args["PE_MAX_LENGTH"], fcHiddenSize=args["TX_FEEDFORWARD_DIM"], dropout=args["TX_DROPOUT"], 
-                     numClasses=args["NUM_CLASSES"])
+    model = VideoNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+                     args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
     model.to(device)
-    model.eval()
     T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"] 
     inputBatch = torch.rand(T, N, C).to(device)
+    model.eval()
     with torch.no_grad():
         outputBatch = model(inputBatch)
     print(outputBatch.shape)
@@ -370,7 +371,7 @@ def compute_wer_checker():
     predictionLenBatch = torch.tensor(predLens)
     targetLenBatch = torch.tensor(trgtLens)
 
-    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, spaceIx=args["CHAR_TO_INDEX"][" "]))
+    print(compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, args["CHAR_TO_INDEX"][" "]))
     return
 
 
@@ -415,10 +416,9 @@ def compute_cer_checker():
 
 def preprocess_sample_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    vf = VisualFrontend().to(device)
-    vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"]))
+    vf = VisualFrontend()
+    vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"], map_location=device))
     vf.to(device)
-    vf.eval()
     file = args["CODE_DIRECTORY"] + "/demo/00001"
     params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
     preprocess_sample(file, params)

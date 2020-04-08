@@ -1,10 +1,10 @@
-import torch
 from torch.utils.data import Dataset
 from scipy.io import wavfile
 import numpy as np
 
 from .utils import prepare_pretrain_input
 from .utils import prepare_main_input
+
 
 
 class LRS2Pretrain(Dataset):
@@ -57,7 +57,6 @@ class LRS2Pretrain(Dataset):
 
 
 
-
 class LRS2Main(Dataset):
 
     """
@@ -75,10 +74,7 @@ class LRS2Main(Dataset):
         self.stepSize = stepSize
         self.audioParams = audioParams
         self.videoParams = videoParams
-        if noiseParams["noiseFile"] != None:
-            _, self.noise = wavfile.read(noiseParams["noiseFile"])
-        else:
-            self.noise = None
+        _, self.noise = wavfile.read(noiseParams["noiseFile"])
         self.noiseSNR = noiseParams["noiseSNR"]
         self.noiseProb = noiseParams["noiseProb"]
         return

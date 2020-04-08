@@ -6,6 +6,7 @@ from .utils import prepare_pretrain_input
 from .utils import prepare_main_input
 
 
+
 class LRS2Pretrain(Dataset):
        
     """    
@@ -43,7 +44,6 @@ class LRS2Pretrain(Dataset):
     def __len__(self):
         #each iteration covers only a random subset of all the training samples whose size is given by the step size
         return self.stepSize
-
 
 
 
