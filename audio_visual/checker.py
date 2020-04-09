@@ -106,7 +106,10 @@ def lrs2main_max_inplen_checker():
 
 def trgtlen_distribution_checker():
     for dataset in ["pretrain","main"]:
-        distribution = np.zeros(2500, dtype=np.int)
+        if dataset == "pretrain":
+            distribution = np.zeros(2500, dtype=np.int)
+        else:
+            distribution = np.zeros(150, dtype=np.int)
         for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/" + dataset):
             for file in files:
                 if file.endswith(".mp4"):
@@ -130,7 +133,10 @@ def trgtlen_distribution_checker():
         plt.title("{} dataset target length distribution".format(dataset))
         plt.xlabel("Target Lengths")
         plt.ylabel("Counts")
-        plt.bar(np.arange(2500), distribution)
+        if dataset == "pretrain":
+            plt.bar(np.arange(2500), distribution)
+        else:
+            plt.bar(np.arange(150), distribution)
         plt.savefig(args["DATA_DIRECTORY"] + "/" + dataset + ".png")
         plt.close()
     return
