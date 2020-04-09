@@ -50,17 +50,12 @@ def preprocess_sample(file, params):
     inp = np.stack(roiSequence, axis=0)
     inp = np.expand_dims(inp, axis=[1,2])
     inp = (inp - normMean)/normStd
-    outs = list()
-    for s in [-1,1]:
-        inp = inp[...,::s].copy()
-        inputBatch = torch.from_numpy(inp)
-        inputBatch = (inputBatch.float()).to(device)
-        vf.eval()
-        with torch.no_grad():
-            outputBatch = vf(inputBatch)
-        out = torch.squeeze(outputBatch, dim=1)
-        out = out.cpu().numpy()
-        outs.append(out)
-    outs = np.stack(outs, axis=0)
-    np.save(visualFeaturesFile, outs)
+    inputBatch = torch.from_numpy(inp)
+    inputBatch = (inputBatch.float()).to(device)
+    vf.eval()
+    with torch.no_grad():
+        outputBatch = vf(inputBatch)
+    out = torch.squeeze(outputBatch, dim=1)
+    out = out.cpu().numpy()
+    np.save(visualFeaturesFile, out)
     return

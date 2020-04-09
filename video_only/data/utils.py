@@ -28,7 +28,7 @@ def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, vide
 
     
     #loading the visual features
-    inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
+    inp = np.load(visualFeaturesFile)
 
     
     #checking whether the input length is greater than or equal to the required length
@@ -73,7 +73,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
             print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
             exit()
         #loading the visual features
-        inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
+        inp = np.load(visualFeaturesFile)
 
     else:
         #make a list of all possible sub-sequences with required number of words in the target
@@ -96,7 +96,7 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         videoEndTime = float(lines[4+ix+numWords-1].split(" ")[2])
         #loading the visual features
         videoFPS = videoParams["videoFPS"]
-        inp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
+        inp = np.load(visualFeaturesFile)
         inp = inp[int(np.floor(videoFPS*videoStartTime)):int(np.ceil(videoFPS*videoEndTime))]
 
 

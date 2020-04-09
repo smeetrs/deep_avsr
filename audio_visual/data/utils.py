@@ -61,7 +61,7 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, reqInpL
 
 
     #loading the visual features
-    vidInp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
+    vidInp = np.load(visualFeaturesFile)
 
 
     #padding zero vectors to extend the audio and video length to a least possible integer length such that
@@ -127,7 +127,7 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
             exit()
         sampFreq, inputAudio = wavfile.read(audioFile)
         #loading visual features
-        vidInp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))] 
+        vidInp = np.load(visualFeaturesFile) 
 
     else:
         #make a list of all possible sub-sequences with required number of words in the target
@@ -153,7 +153,7 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
         inputAudio = audio[int(sampFreq*startTime):int(sampFreq*endTime)]
         #loading visual features
         videoFPS = videoParams["videoFPS"]
-        vidInp = np.load(visualFeaturesFile)[np.random.choice(np.arange(2))]
+        vidInp = np.load(visualFeaturesFile)
         vidInp = vidInp[int(np.floor(videoFPS*startTime)):int(np.ceil(videoFPS*endTime))]
 
 
