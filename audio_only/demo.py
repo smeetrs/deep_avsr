@@ -62,6 +62,13 @@ if args["TRAINED_MODEL_FILE"] is not None:
         lm = None
 
 
+    #reading the noise file
+    if args["TEST_DEMO_NOISY"]:
+        _, noise = wavfile.read(args["DATA_DIRECTORY"] + "/noise.wav")
+    else:
+        noise = None
+
+
     print("\nRunning Demo .... \n")
 
     #walking through the demo directory and running the model on all video files in it 
@@ -77,7 +84,7 @@ if args["TRAINED_MODEL_FILE"] is not None:
                 #converting the data sample into appropriate tensors for input to the model
                 audioFile = os.path.join(root, file[:-4]) + ".wav"
                 audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-                inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, noise=None, args["MAIN_REQ_INPUT_LENGTH"], 
+                inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, targetFile, noise, args["MAIN_REQ_INPUT_LENGTH"], 
                                                                 args["CHAR_TO_INDEX"], args["NOISE_SNR_DB"], audioParams)
                 inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
 

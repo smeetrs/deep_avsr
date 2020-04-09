@@ -46,7 +46,7 @@ def preprocess_sample(file, params):
     inp = (inp - normMean)/normStd
     outs = list()
     for s in [-1,1]:
-        inp = inp[...,::s]
+        inp = inp[...,::s].copy()
         inputBatch = torch.from_numpy(inp)
         inputBatch = (inputBatch.float()).to(device)
         vf.eval()

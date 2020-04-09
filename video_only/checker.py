@@ -58,7 +58,7 @@ def lrs2pretrain_checker():
 
 def lrs2main_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"]}
-    trainData = LRS2Main(dataset="train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+    trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                          videoParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)

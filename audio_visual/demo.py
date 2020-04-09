@@ -68,6 +68,13 @@ if args["TRAINED_MODEL_FILE"] is not None:
         lm = None
 
 
+    #reading the noise file
+    if args["TEST_DEMO_NOISY"]:
+        _, noise = wavfile.read(args["DATA_DIRECTORY"] + "/noise.wav")
+    else:
+        noise = None
+
+
     print("\nRunning Demo .... \n")
 
     #walking through the demo directory and running the model on all video files in it 
@@ -86,7 +93,7 @@ if args["TRAINED_MODEL_FILE"] is not None:
                 visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
                 videoParams = {"videoFPS":args["VIDEO_FPS"]}
-                inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise=None, 
+                inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, 
                                                                 args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["NOISE_SNR_DB"], 
                                                                 audioParams, videoParams)
                 inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
