@@ -17,20 +17,20 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
 
 
 #Preprocessing each sample
-print("\nNumber of data samples to be processed = %d\n" %(len(filesList)))
-print("\nStarting preprocessing ....\n")
+print("\nNumber of data samples to be processed = %d" %(len(filesList)))
+print("\n\nStarting preprocessing ....\n")
 
 for file in tqdm(filesList):
     preprocess_sample(file)
 
-print("\nPreprocessing Done.\n")
+print("\nPreprocessing Done.")
 
 
 
 #Generating a 1 hour noise file
 #Fetching audio samples from 20 random files in the dataset and adding them up to generate noise
 #The length of these clips is the shortest audio sample among the 20 samples
-print("\nGenerating the noise file ....\n")
+print("\n\nGenerating the noise file ....")
 
 noise = np.empty((0))
 while len(noise) < 16000*3600:
@@ -50,4 +50,4 @@ noise = (noise/20)*32767
 noise = np.floor(noise).astype(np.int16)
 wavfile.write(args["DATA_DIRECTORY"] + "/noise.wav", 16000, noise)
 
-print("Noise file generated.\n")
+print("\nNoise file generated.\n")

@@ -43,8 +43,8 @@ device = torch.device("cuda" if gpuAvailable else "cpu")
 
 if args["TRAINED_MODEL_FILE"] is not None:
     
-    print("Trained Model File: %s\n" %(args["TRAINED_MODEL_FILE"]))
-    print("Demo Directory: %s\n\n" %(args["DEMO_DIRECTORY"]))
+    print("\nTrained Model File: %s" %(args["TRAINED_MODEL_FILE"]))
+    print("\nDemo Directory: %s" %(args["DEMO_DIRECTORY"]))
 
 
     #declaring the model and loading the trained weights
@@ -75,7 +75,7 @@ if args["TRAINED_MODEL_FILE"] is not None:
         noise = None
 
 
-    print("\nRunning Demo .... \n")
+    print("\n\nRunning Demo .... \n")
 
     #walking through the demo directory and running the model on all video files in it 
     for root, dirs, files in os.walk(args["DEMO_DIRECTORY"]):
@@ -140,4 +140,4 @@ if args["TRAINED_MODEL_FILE"] is not None:
 
 
 else:
-    print("Path to trained model file not specified.\n")
+    print("\nPath to trained model file not specified.\n")

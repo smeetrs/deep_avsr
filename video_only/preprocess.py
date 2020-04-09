@@ -24,8 +24,8 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
 
 
 #Preprocessing each sample
-print("\nNumber of data samples to be processed = %d\n" %(len(filesList)))
-print("\nStarting preprocessing ....\n")
+print("\nNumber of data samples to be processed = %d" %(len(filesList)))
+print("\n\nStarting preprocessing ....\n")
 
 params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
 for file in tqdm(filesList):

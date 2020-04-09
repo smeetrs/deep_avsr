@@ -82,7 +82,7 @@ validationWERCurve = list()
 
 #printing the total and trainable parameters in the model
 numTotalParams, numTrainableParams = num_params(model)
-print("Number of total parameters in the model = %d" %(numTotalParams))
+print("\nNumber of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
 
