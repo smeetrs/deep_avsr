@@ -87,7 +87,7 @@ numTotalParams, numTrainableParams = num_params(model)
 print("\nNumber of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
-print("Number of Words = %d" %(args[PRETRAIN_NUM_WORDS]))
+print("Number of Words = %d" %(args["PRETRAIN_NUM_WORDS"]))
 print("\nPretraining the model .... \n")
 
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
