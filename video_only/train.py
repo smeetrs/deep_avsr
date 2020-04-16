@@ -111,7 +111,7 @@ for step in range(args["NUM_STEPS"]):
     
 
     #saving the model weights and loss/metric curves in the checkpoints directory after every few steps
-    if (step % args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]):
+    if ((step%args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]-1)) and (step != 0):
         
         savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/train-step_{:04d}-wer_{:.3f}.pt".format(step, validationWER)
         torch.save(model.state_dict(), savePath)
