@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -25,18 +25,17 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-#declaring the pretrain dataset and splitting it into train and validation sets
-#declaring the corresponding dataloaders
-audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-videoParams={"videoFPS":args["VIDEO_FPS"]}
-noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
-pretrainData = LRS2Pretrain(args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+#declaring the pretrain and the preval datasets and the corresponding dataloaders
+audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
+videoParams = {"videoFPS":args["VIDEO_FPS"]}
+noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+pretrainData = LRS2Pretrain("pretrain", args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                             audioParams, videoParams, noiseParams)
-pretrainValSize = int(args["PRETRAIN_VAL_SPLIT"]*len(pretrainData))
-pretrainSize = len(pretrainData) - pretrainValSize
-pretrainData, pretrainValData = random_split(pretrainData, [pretrainSize, pretrainValSize])
 pretrainLoader = DataLoader(pretrainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
-pretrainValLoader = DataLoader(pretrainValData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
+noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":0, "noiseSNR":args["NOISE_SNR_DB"]}
+prevalData = LRS2Pretrain("preval", args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+                          audioParams, videoParams, noiseParams)
+prevalLoader = DataLoader(prevalData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
 #declaring the model, optimizer, scheduler and the loss function
@@ -88,13 +87,13 @@ numTotalParams, numTrainableParams = num_params(model)
 print("\nNumber of total parameters in the model = %d" %(numTotalParams))
 print("Number of trainable parameters in the model = %d\n" %(numTrainableParams))
 
-
+print("Number of Words = %d" %(args[PRETRAIN_NUM_WORDS]))
 print("\nPretraining the model .... \n")
 
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 
-for step in range(1, args["NUM_STEPS"]+1):
+for step in range(args["NUM_STEPS"]):
     
     #train the model for one step
     trainingLoss, trainingCER, trainingWER = train(model, pretrainLoader, optimizer, loss_function, device, trainParams)
@@ -102,16 +101,16 @@ for step in range(1, args["NUM_STEPS"]+1):
     trainingWERCurve.append(trainingWER)
 
     #evaluate the model on validation set
-    validationLoss, validationCER, validationWER = evaluate(model, pretrainValLoader, loss_function, device, valParams)
+    validationLoss, validationCER, validationWER = evaluate(model, prevalLoader, loss_function, device, valParams)
     validationLossCurve.append(validationLoss)
     validationWERCurve.append(validationWER)
 
+    #printing the stats after each step
+    print("Step: %03d || Tr.Loss: %.6f  Val.Loss: %.6f || Tr.CER: %.3f  Val.CER: %.3f || Tr.WER: %.3f  Val.WER: %.3f" 
+          %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
+
     #make a scheduler step
     scheduler.step(validationWER)
-
-    #printing the stats after each step
-    print("Step: %d || Tr.Loss: %.6f || Val.Loss: %.6f || Tr.CER: %.3f || Val.CER: %.3f || Tr.WER: %.3f || Val.WER: %.3f" 
-          %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
     
 
     #saving the model weights and loss/metric curves in the checkpoints directory after every few steps

@@ -53,7 +53,7 @@ def lrs2pretrain_checker():
     audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
-    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
     pretrainData = LRS2Pretrain(args["DATA_DIRECTORY"], args["PRETRAIN_NUM_WORDS"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                                 audioParams, videoParams, noiseParams)
     numSamples = len(pretrainData)
@@ -67,7 +67,7 @@ def lrs2main_checker():
     audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
     videoParams = {"videoFPS":args["VIDEO_FPS"], "roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], 
                    "normStd":args["NORMALIZATION_STD"]}
-    noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+    noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
     trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                          audioParams, videoParams, noiseParams)
     numSamples = len(trainData)

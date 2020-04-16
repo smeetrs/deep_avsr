@@ -10,8 +10,14 @@ from utils.preprocessing import preprocess_sample
 
 
 
+np.random.seed(args["SEED"])
+torch.manual_seed(args["SEED"])
+gpuAvailable = torch.cuda.is_available()
+device = torch.device("cuda" if gpuAvailable else "cpu")
+
+
+
 #declaring the visual frontend module
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 vf = VisualFrontend()
 vf.load_state_dict(torch.load(args["TRAINED_FRONTEND_FILE"], map_location=device))
 vf.to(device)
@@ -60,4 +66,29 @@ noise = (noise/20)*32767
 noise = np.floor(noise).astype(np.int16)
 wavfile.write(args["DATA_DIRECTORY"] + "/noise.wav", 16000, noise)
 
-print("\nNoise file generated.\n")
+print("\nNoise file generated.")
+
+
+
+#Generating preval.txt for splitting the pretrain set into train and validation sets
+print("\n\nGenerating the preval.txt file ....")
+
+with open(args["DATA_DIRECTORY"] + "/pretrain.txt", "r") as f:
+    lines = f.readlines()
+
+if os.path.exists(args["DATA_DIRECTORY"] + "/preval.txt"):
+    with open(args["DATA_DIRECTORY"] + "/preval.txt", "r") as f:
+        lines.extend(f.readlines())
+
+indices = np.arange(len(lines))
+np.random.shuffle(indices)
+valIxs = np.sort(indices[:int(np.ceil(args["PRETRAIN_VAL_SPLIT"]*len(indices)))])
+trainIxs = np.sort(indices[int(np.ceil(args["PRETRAIN_VAL_SPLIT"]*len(indices))):])
+
+lines = np.sort(np.array(lines))
+with open(args["DATA_DIRECTORY"] + "/pretrain.txt", "w") as f:
+    f.writelines(list(lines[trainIxs]))
+with open(args["DATA_DIRECTORY"] + "/preval.txt", "w") as f:
+    f.writelines(list(lines[valIxs]))
+
+print("\npreval.txt file generated.\n")

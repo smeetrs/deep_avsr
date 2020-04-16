@@ -26,15 +26,15 @@ torch.backends.cudnn.benchmark = False
 
 
 #declaring the train and validation datasets and their corresponding dataloaders
-audioParams={"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
-videoParams={"videoFPS":args["VIDEO_FPS"]}
-noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
+audioParams = {"stftWindow":args["STFT_WINDOW"], "stftWinLen":args["STFT_WIN_LENGTH"], "stftOverlap":args["STFT_OVERLAP"]}
+videoParams = {"videoFPS":args["VIDEO_FPS"]}
+noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":args["NOISE_PROBABILITY"], "noiseSNR":args["NOISE_SNR_DB"]}
 trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                      audioParams, videoParams, noiseParams)
-noiseParams={"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":0, "noiseSNR":args["NOISE_SNR_DB"]}
+trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
+noiseParams = {"noiseFile":args["DATA_DIRECTORY"] + "/noise.wav", "noiseProb":0, "noiseSNR":args["NOISE_SNR_DB"]}
 valData = LRS2Main("val", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
                    audioParams, videoParams, noiseParams)
-trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
@@ -93,7 +93,7 @@ print("\nTraining the model .... \n")
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 
-for step in range(1, args["NUM_STEPS"]+1):
+for step in range(args["NUM_STEPS"]):
     
     #train the model for one step
     trainingLoss, trainingCER, trainingWER = train(model, trainLoader, optimizer, loss_function, device, trainParams)
@@ -105,12 +105,12 @@ for step in range(1, args["NUM_STEPS"]+1):
     validationLossCurve.append(validationLoss)
     validationWERCurve.append(validationWER)
 
+    #printing the stats after each step
+    print("Step: %03d || Tr.Loss: %.6f  Val.Loss: %.6f || Tr.CER: %.3f  Val.CER: %.3f || Tr.WER: %.3f  Val.WER: %.3f" 
+          %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
+
     #make a scheduler step
     scheduler.step(validationWER)
-
-    #printing the stats after each step
-    print("Step: %d || Tr.Loss: %.6f || Val.Loss: %.6f || Tr.CER: %.3f || Val.CER: %.3f || Tr.WER: %.3f || Val.WER: %.3f" 
-          %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
     
 
     #saving the model weights and loss/metric curves in the checkpoints directory after every few steps
