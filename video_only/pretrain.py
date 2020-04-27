@@ -107,7 +107,7 @@ for step in range(args["NUM_STEPS"]):
           %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
     
     #make a scheduler step
-    scheduler.step(validationCER)
+    scheduler.step(validationWER)
 
 
     #saving the model weights and loss/metric curves in the checkpoints directory after every few steps

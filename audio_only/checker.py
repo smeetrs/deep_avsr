@@ -415,6 +415,45 @@ def preprocess_sample_checker():
     return
 
 
+def word_count_distribution_checker():
+    for dataset in ["pretrain","main"]:
+        if dataset == "pretrain":
+            distribution = np.zeros(500, dtype=np.int)
+        else:
+            distribution = np.zeros(10, dtype=np.int)
+        for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/" + dataset):
+            for file in files:
+                if file.endswith(".mp4"):
+                    targetFile = os.path.join(root, file[:-4]) + ".txt"
+                    with open(targetFile, "r") as f:
+                        trgt = f.readline().strip()[7:]
+                        words = trgt.split(" ")
+                        numWords = len(words)
+                        distribution[numWords] = distribution[numWords] + 1
+
+        for i in range(len(distribution)):
+            if distribution[i] != 0:
+                print("Dataset: %s, Min Word Count = %d" %(dataset, i))
+                break
+
+        for i in range(len(distribution)-1, -1, -1):
+            if distribution[i] != 0:
+                print("Dataset: %s, Max Word Count = %d" %(dataset, i))
+                break
+
+        plt.figure()
+        plt.title("{} dataset word count distribution".format(dataset))
+        plt.xlabel("Number of Words in a Target")
+        plt.ylabel("Counts")
+        if dataset == "pretrain":
+            plt.bar(np.arange(500), distribution)
+        else:
+            plt.bar(np.arange(10), distribution)
+        plt.savefig(args["DATA_DIRECTORY"] + "/" + dataset + "_wd.png")
+        plt.close()
+    return
+
+
 if __name__ == '__main__':
     #call the required function checker
     #delete the function calls after checking to avoid pushing everytime to github
