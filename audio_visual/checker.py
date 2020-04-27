@@ -464,7 +464,7 @@ def word_count_distribution_checker():
         if dataset == "pretrain":
             distribution = np.zeros(500, dtype=np.int)
         else:
-            distribution = np.zeros(10, dtype=np.int)
+            distribution = np.zeros(30, dtype=np.int)
         for root, dirs, files in os.walk(args["DATA_DIRECTORY"] + "/" + dataset):
             for file in files:
                 if file.endswith(".mp4"):
@@ -492,7 +492,7 @@ def word_count_distribution_checker():
         if dataset == "pretrain":
             plt.bar(np.arange(500), distribution)
         else:
-            plt.bar(np.arange(10), distribution)
+            plt.bar(np.arange(30), distribution)
         plt.savefig(args["DATA_DIRECTORY"] + "/" + dataset + "_wd.png")
         plt.close()
     return
