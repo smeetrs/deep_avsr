@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from .metrics import compute_cer, compute_wer
 from .decoders import ctc_greedy_decode, ctc_search_decode
@@ -30,6 +31,15 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
         
         inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
+
+        opmode = np.random.choice(["AO", "VO", "AV"], 
+                                  p=[trainParams["aoProb"], trainParams["voProb"], 1-(trainParams["aoProb"]+trainParams["voProb"])])
+        if opmode == "AO":
+            inputBatch = (inputBatch[0], None)
+        elif opmode == "VO":
+            inputBatch = (None, inputBatch[1])
+        else:
+            pass
         
         optimizer.zero_grad()
         model.train()

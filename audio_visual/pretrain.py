@@ -90,7 +90,8 @@ print("Number of trainable parameters in the model = %d\n" %(numTrainableParams)
 print("Number of Words = %d" %(args["PRETRAIN_NUM_WORDS"]))
 print("\nPretraining the model .... \n")
 
-trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
+trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "aoProb":args["AUDIO_ONLY_PROBABILITY"], 
+               "voProb":args["VIDEO_ONLY_PROBABILITY"]}
 valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 
 for step in range(args["NUM_STEPS"]):

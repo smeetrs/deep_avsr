@@ -22,8 +22,6 @@ class LRS2Pretrain(Dataset):
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
-        self.aoProb = audioParams["aoProb"]
-        self.voProb = videoParams["voProb"]
         self.audioParams = audioParams
         self.videoParams = videoParams
         _, self.noise = wavfile.read(noiseParams["noiseFile"])
@@ -52,13 +50,6 @@ class LRS2Pretrain(Dataset):
             noise = None
         inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, self.numWords, 
                                                             self.charToIx, self.noiseSNR, self.audioParams, self.videoParams)
-        opmode = np.random.choice(["ao", "vo", "av"], p=[self.aoProb, self.voProb, 1-(self.aoProb+self.voProb)])
-        if opmode == "ao":
-            inp[1] = None
-        elif opmode == "vo":
-            inp[0] = None
-        else:
-            pass
         return inp, trgt, inpLen, trgtLen
 
 
@@ -87,8 +78,6 @@ class LRS2Main(Dataset):
         self.charToIx = charToIx
         self.dataset = dataset
         self.stepSize = stepSize
-        self.aoProb = audioParams["aoProb"]
-        self.voProb = videoParams["voProb"]
         self.audioParams = audioParams
         self.videoParams = videoParams
         _, self.noise = wavfile.read(noiseParams["noiseFile"])
@@ -115,13 +104,6 @@ class LRS2Main(Dataset):
             noise = None
         inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, self.reqInpLen, self.charToIx, 
                                                         self.noiseSNR, self.audioParams, self.videoParams)
-        opmode = np.random.choice(["ao", "vo", "av"], p=[self.aoProb, self.voProb, 1-(self.aoProb+self.voProb)])
-        if opmode == "ao":
-            inp[1] = None
-        elif opmode == "vo":
-            inp[0] = None
-        else:
-            pass
         return inp, trgt, inpLen, trgtLen
 
 
