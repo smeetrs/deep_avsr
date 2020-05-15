@@ -103,8 +103,7 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, reqInpL
 
 
 
-def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, numWords, charToIx, noiseSNR, 
-                           audioParams, videoParams):
+def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, numWords, charToIx, noiseSNR, audioParams, videoParams):
      
     """
     Function to convert the data sample in the pretrain dataset into appropriate tensors.
