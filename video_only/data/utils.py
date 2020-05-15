@@ -68,22 +68,12 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
     #if number of words in target is less than the required number of words, consider the whole target
     if len(words) <= numWords:
         trgtNWord = trgt
-        #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
-        if len(trgtNWord)+1 > 256:
-            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
-            exit()
-        #loading the visual features
         inp = np.load(visualFeaturesFile)
 
     else:
         #make a list of all possible sub-sequences with required number of words in the target
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
         nWordLens = np.array([len(nWord)+1 for nWord in nWords]).astype(np.float)
-        #the target length must be less than 256 characters (pytorch ctc loss function limit when using CUDA)
-        nWordLens[nWordLens > 256] = -np.inf
-        if np.all(nWordLens == -np.inf):
-            print("PyTorch CTC loss function (CUDA) limit exceeded. Exiting")
-            exit()
         
         #choose the sub-sequence for target according to a softmax distribution of the lengths
         #this way longer sub-sequences (which are more diverse) are selected more often while 

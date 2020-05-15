@@ -61,19 +61,34 @@ class AVNet(nn.Module):
     def forward(self, inputBatch):
         audioInputBatch, videoInputBatch = inputBatch
         
-        audioInputBatch = audioInputBatch.transpose(0, 1).transpose(1, 2)
-        audioBatch = self.audioConv(audioInputBatch)
-        audioBatch = audioBatch.transpose(1, 2).transpose(0, 1)
-        audioBatch = self.positionalEncoding(audioBatch)
-        audioBatch = self.audioEncoder(audioBatch)
+        if audioInputBatch is not None:
+            audioInputBatch = audioInputBatch.transpose(0, 1).transpose(1, 2)
+            audioBatch = self.audioConv(audioInputBatch)
+            audioBatch = audioBatch.transpose(1, 2).transpose(0, 1)
+            audioBatch = self.positionalEncoding(audioBatch)
+            audioBatch = self.audioEncoder(audioBatch)
+        else:
+            audioBatch = None
         
-        videoBatch = self.positionalEncoding(videoInputBatch)
-        videoBatch = self.videoEncoder(videoBatch)
+        if videoInputBatch is not None:
+            videoBatch = self.positionalEncoding(videoInputBatch)
+            videoBatch = self.videoEncoder(videoBatch)
+        else:
+            videoBatch = None
 
-        jointBatch = torch.cat([audioBatch, videoBatch], dim=2)
-        jointBatch = jointBatch.transpose(0, 1).transpose(1, 2)
-        jointBatch = self.jointConv(jointBatch)
-        jointBatch = jointBatch.transpose(1, 2).transpose(0, 1)
+        if (audioBatch is not None) and (videoBatch is not None):
+            jointBatch = torch.cat([audioBatch, videoBatch], dim=2)
+            jointBatch = jointBatch.transpose(0, 1).transpose(1, 2)
+            jointBatch = self.jointConv(jointBatch)
+            jointBatch = jointBatch.transpose(1, 2).transpose(0, 1)
+        elif (audioBatch is None) and (videoBatch is not None):
+            jointBatch = videoBatch
+        elif (audioBatch is not None) and (videoBatch is None):
+            jointBatch = audioBatch
+        else:
+            print("Both audio and visual inputs missing.")
+            exit()
+
         jointBatch = self.jointDecoder(jointBatch)
         jointBatch = jointBatch.transpose(0, 1).transpose(1, 2)
         jointBatch = self.outputConv(jointBatch)
