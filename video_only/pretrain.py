@@ -137,10 +137,5 @@ for step in range(args["NUM_STEPS"]):
         plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/pretrain_{:03d}w-step_{:04d}-wer.png".format(args["PRETRAIN_NUM_WORDS"], step))
         plt.close()
 
-    #empty cache after every step to avoid filling up the GPU memory when using variable sized batches
-    if args["EMPTY_CACHE"]:
-        if torch.cuda.is_available():
-           torch.cuda.empty_cache() 
-
 
 print("\nPretraining Done.\n")

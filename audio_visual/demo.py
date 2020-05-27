@@ -101,6 +101,16 @@ if args["TRAINED_MODEL_FILE"] is not None:
                 #running the model
                 inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
                 inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
+                if args["TEST_DEMO_MODE"] = "AO":
+                    inputBatch = (inputBatch[0], None)
+                elif args["TEST_DEMO_MODE"] = "VO":
+                    inputBatch = (None, inputBatch[1])
+                elif args["TEST_DEMO_MODE"] = "AV":
+                    pass
+                else:
+                    print("Invalid Operation Mode.")
+                    exit()
+                    
                 model.eval()
                 with torch.no_grad():
                     outputBatch = model(inputBatch)

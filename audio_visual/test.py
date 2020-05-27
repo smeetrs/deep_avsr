@@ -57,8 +57,18 @@ if args["TRAINED_MODEL_FILE"] is not None:
 
     beamSearchParams = {"beamWidth":args["BEAM_WIDTH"], "alpha":args["LM_WEIGHT_ALPHA"], "beta":args["LENGTH_PENALTY_BETA"], 
                         "threshProb":args["THRESH_PROBABILITY"]}
-    testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, "spaceIx":args["CHAR_TO_INDEX"][" "], 
-                  "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":lm}
+    if args["TEST_DEMO_MODE"] = "AO":
+        testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, "spaceIx":args["CHAR_TO_INDEX"][" "], 
+                      "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":lm, "aoProb":1, "voProb":0}
+    elif args["TEST_DEMO_MODE"] = "VO":
+        testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, "spaceIx":args["CHAR_TO_INDEX"][" "], 
+                      "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":lm, "aoProb":0, "voProb":1}
+    elif args["TEST_DEMO_MODE"] = "AV":
+        testParams = {"decodeScheme":args["TEST_DEMO_DECODING"], "beamSearchParams":beamSearchParams, "spaceIx":args["CHAR_TO_INDEX"][" "], 
+                      "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "lm":lm, "aoProb":0, "voProb":0}
+    else:
+        print("Invalid Operation Mode.")
+        exit()
     
     #evaluating the model over the test set
     testLoss, testCER, testWER = evaluate(model, testLoader, loss_function, device, testParams)

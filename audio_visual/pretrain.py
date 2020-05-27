@@ -92,7 +92,7 @@ print("\nPretraining the model .... \n")
 
 trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "aoProb":args["AUDIO_ONLY_PROBABILITY"], 
                "voProb":args["VIDEO_ONLY_PROBABILITY"]}
-valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
+valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"], "aoProb":0, "voProb":0}
 
 for step in range(args["NUM_STEPS"]):
     
@@ -140,11 +140,6 @@ for step in range(args["NUM_STEPS"]):
         plt.legend()
         plt.savefig(args["CODE_DIRECTORY"] + "/checkpoints/plots/pretrain_{:03d}w-step_{:04d}-wer.png".format(args["PRETRAIN_NUM_WORDS"], step))
         plt.close()
-
-    #empty cache after every step to avoid filling up the GPU memory when using variable sized batches
-    if args["EMPTY_CACHE"]:
-        if torch.cuda.is_available():
-           torch.cuda.empty_cache() 
 
 
 print("\nPretraining Done.\n")

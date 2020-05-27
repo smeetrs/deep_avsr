@@ -27,7 +27,7 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
     trainingCER = 0
     trainingWER = 0
 
-    for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(trainLoader):
+    for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(tqdm(trainLoader, leave=False, desc="Train")):
         
         inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
@@ -72,10 +72,19 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
     evalCER = 0
     evalWER = 0
     
-    for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(evalLoader):
+    for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(tqdm(evalLoader, leave=False, desc="Eval")):
         
         inputBatch, targetBatch = ((inputBatch[0].float()).to(device), (inputBatch[1].float()).to(device)), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
+        
+        opmode = np.random.choice(["AO", "VO", "AV"], 
+                                  p=[evalParams["aoProb"], evalParams["voProb"], 1-(evalParams["aoProb"]+evalParams["voProb"])])
+        if opmode == "AO":
+            inputBatch = (inputBatch[0], None)
+        elif opmode == "VO":
+            inputBatch = (None, inputBatch[1])
+        else:
+            pass
         
         model.eval()
         with torch.no_grad():

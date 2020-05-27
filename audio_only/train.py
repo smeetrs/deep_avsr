@@ -139,10 +139,4 @@ for step in range(args["NUM_STEPS"]):
         plt.close()
 
 
-    #empty cache after every step to avoid filling up the GPU memory when using variable sized batches
-    if args["EMPTY_CACHE"]:
-        if torch.cuda.is_available():
-           torch.cuda.empty_cache() 
-
-
 print("\nTraining Done.\n")
