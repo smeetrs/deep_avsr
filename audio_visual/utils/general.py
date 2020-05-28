@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm import tqdm
 
 from .metrics import compute_cer, compute_wer
 from .decoders import ctc_greedy_decode, ctc_search_decode
