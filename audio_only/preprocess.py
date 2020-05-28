@@ -28,7 +28,7 @@ for root, dirs, files in os.walk(args["DATA_DIRECTORY"]):
 print("\nNumber of data samples to be processed = %d" %(len(filesList)))
 print("\n\nStarting preprocessing ....\n")
 
-for file in tqdm(filesList):
+for file in tqdm(filesList, leave=True, desc="Preprocess", dynamic_ncols=True):
     preprocess_sample(file)
 
 print("\nPreprocessing Done.")

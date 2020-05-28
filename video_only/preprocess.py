@@ -34,7 +34,7 @@ print("\nNumber of data samples to be processed = %d" %(len(filesList)))
 print("\n\nStarting preprocessing ....\n")
 
 params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
-for file in tqdm(filesList):
+for file in tqdm(filesList, leave=True, desc="Preprocess", dynamic_ncols=True):
     preprocess_sample(file, params)
             
 print("\nPreprocessing Done.")
