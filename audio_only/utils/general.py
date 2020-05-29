@@ -28,7 +28,7 @@ def train(model, trainLoader, optimizer, loss_function, device, trainParams):
     trainingWER = 0
 
     for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(tqdm(trainLoader, leave=False, desc="Train", 
-                                                                                          dynamic_ncols=True)):
+                                                                                          ncols=75)):
         
         inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
@@ -65,7 +65,7 @@ def evaluate(model, evalLoader, loss_function, device, evalParams):
     evalWER = 0
     
     for batch, (inputBatch, targetBatch, inputLenBatch, targetLenBatch) in enumerate(tqdm(evalLoader, leave=False, desc="Eval", 
-                                                                                     dynamic_ncols=True)):
+                                                                                     ncols=75)):
         
         inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)
         inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
