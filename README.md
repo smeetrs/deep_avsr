@@ -138,21 +138,28 @@ Please send an email at `smeetrs<AT>gmail.com` from your institutional email ID 
 
 ## How To Use
 
-Download the complete LRS2 dataset from [here](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) or in cases of custom datasets, have the specifications and folder structure similar to LRS2 dataset. Steps have been provided to either train the models or to use the trained models directly for inference:
+If planning to train the models, download the complete LRS2 dataset from [here](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) or in cases of custom datasets, have the specifications and folder structure similar to LRS2 dataset. 
+
+Steps have been provided to either train the models or to use the trained models directly for inference:
 
 #### Training
 
 Set the configuration options in the `config.py` file before each of the following steps as required. Comments have been provided for each option.
 
 1. Run the `preprocess.py` script to preprocess and generate the required files for each sample.
+
 2. Run the `pretrain.py` script for one iteration of curriculum learning. Run it multiple times, each time changing the `PRETRAIN_NUM_WORDS` argument in the `config.py` file to perform multiple iterations of curriculum learning.
+
 3. Run the `train.py` script to finally train the model on the train set.
+
 4. Once the model is trained, run the `test.py` script to obtain the performance of the trained model on the test set.
+
 5. Run the `demo.py` script to use the model to make predictions for each sample in a demo directory. Read the specifications for the sample in the `demo.py` file.
 
 #### Inference
 
 1. Set the configuration options in the `config.py` file. Comments have been provided for each option.
+
 2. Run the `demo.py` script to use the model to make predictions for each sample in a demo directory. Read the specifications for the sample in the `demo.py` file.
 
 
@@ -163,4 +170,6 @@ Set the configuration options in the `config.py` file before each of the followi
 2. The CTC beam search implementation is adapted from [Harald Scheidl, CTC Decoding Algorithms](https://github.com/githubharald/CTCDecoder) GitHub repository.
 
 
-##### Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. Happy Open Source-ing !! 😃 
+***
+
+*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. Happy Open Source-ing !!* 😃 
