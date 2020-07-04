@@ -133,7 +133,9 @@ Download the pre-trained weights for the Language Model using the following comm
 
 Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file.
 
-Please send an email at `smeetrs<AT>gmail.com` from your institutional email ID for the pre-trained weights of the AO, VO and AV models. Place the weights of each model in the corresponding `/final/models` directory.
+The pre-trained weights of the AO, VO and AV models will be made available soon.
+
+[//]: # (Please send an email at `smeetrs<AT>gmail.com` from your institutional email ID for the pre-trained weights of the AO, VO and AV models. Place the weights of each model in the corresponding `/final/models` directory.)
 
 
 ## How To Use
@@ -168,7 +170,6 @@ Set the configuration options in the `config.py` file before each of the followi
 1. The pre-trained weights of the Visual Frontend and the Language Model have been obtained from [Afouras T. and Chung J, Deep Lip Reading: a comparison of models and an online application, 2018](https://github.com/afourast/deep_lip_reading) GitHub repository.
 
 2. The CTC beam search implementation is adapted from [Harald Scheidl, CTC Decoding Algorithms](https://github.com/githubharald/CTCDecoder) GitHub repository.
-
 
 ***
 
