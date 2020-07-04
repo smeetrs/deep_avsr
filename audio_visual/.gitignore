@@ -128,11 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Large folders
+# Temporary folders
 checkpoints/
-final/
 
 # Distinct files
 config.py
-screenlog.0
-
