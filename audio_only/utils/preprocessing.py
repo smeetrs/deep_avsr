@@ -4,7 +4,7 @@ import os
 
 def preprocess_sample(file):
     """
-    Function to preprocess each data sample. 
+    Function to preprocess each data sample.
     Extracts the audio from the video file and saves it to a wav file.
     """
     videoFile = file + ".mp4"

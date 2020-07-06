@@ -8,7 +8,7 @@ import os
 def preprocess_sample(file, params):
 
     """
-    Function to preprocess each data sample. 
+    Function to preprocess each data sample.
     """
 
     videoFile = file + ".mp4"
@@ -43,8 +43,8 @@ def preprocess_sample(file, params):
             break
     captureObj.release()
     cv.imwrite(roiFile, np.floor(255*np.concatenate(roiSequence, axis=1)).astype(np.int))
-    
-    
+
+
     #normalise the frames and extract features for each frame using the visual frontend
     #save the visual features to a .npy file
     inp = np.stack(roiSequence, axis=0)

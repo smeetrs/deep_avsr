@@ -10,11 +10,11 @@ np.seterr(divide="ignore")
 def ctc_greedy_decode(outputBatch, inputLenBatch, eosIx, blank=0):
 
     """
-    Greedy search technique for CTC decoding. 
+    Greedy search technique for CTC decoding.
     This decoding method selects the most probable character at each time step. This is followed by the usual CTC decoding
     to get the predicted transcription.
     Note: The probability assigned to <EOS> token is added to the probability of the blank token before decoding
-    to avoid <EOS> predictions in middle of transcriptions. Once decoded, <EOS> token is appended at last to the 
+    to avoid <EOS> predictions in middle of transcriptions. Once decoded, <EOS> token is appended at last to the
     predictions for uniformity with targets.
     """
 
@@ -24,7 +24,7 @@ def ctc_greedy_decode(outputBatch, inputLenBatch, eosIx, blank=0):
     reqIxs = np.arange(outputBatch.shape[2])
     reqIxs = reqIxs[reqIxs != eosIx]
     outputBatch = outputBatch[:,:,reqIxs]
-    
+
     predCharIxs = torch.argmax(outputBatch, dim=2).T.numpy()
     inpLens = inputLenBatch.numpy()
     preds = list()
@@ -50,9 +50,9 @@ class BeamEntry:
     Class for a single entry in the beam.
     """
     def __init__(self):
-        self.logPrTotal = -np.inf 
-        self.logPrNonBlank = -np.inf 
-        self.logPrBlank = -np.inf 
+        self.logPrTotal = -np.inf
+        self.logPrNonBlank = -np.inf
+        self.logPrBlank = -np.inf
         self.logPrText = 0
         self.lmApplied = False
         self.lmState = None
@@ -61,11 +61,11 @@ class BeamEntry:
 
 
 class BeamState:
-    
+
     """
     Class for the beam.
     """
-    
+
     def __init__(self, alpha, beta):
         self.entries = dict()
         self.alpha = alpha
@@ -97,7 +97,7 @@ class BeamState:
 def apply_lm(parentBeam, childBeam, spaceIx, lm):
 
     """
-    Applying the language model to obtain the language model character probabilities at a time step 
+    Applying the language model to obtain the language model character probabilities at a time step
     given all the previous characters.
     """
 
@@ -110,7 +110,7 @@ def apply_lm(parentBeam, childBeam, spaceIx, lm):
         else:
             initStateBatch = parentBeam.lmState
             inputBatch = torch.tensor(parentBeam.labeling[-1]-1).reshape(1,1)
-            inputBatch = inputBatch.to(device) 
+            inputBatch = inputBatch.to(device)
         lm.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = lm(inputBatch, initStateBatch)
@@ -146,7 +146,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
     """
     Applies the CTC beam search decoding along with a character-level language model.
     Note: The probability assigned to <EOS> token is added to the probability of the blank token before decoding
-    to avoid <EOS> predictions in middle of transcriptions. Once decoded, <EOS> token is appended at last to the 
+    to avoid <EOS> predictions in middle of transcriptions. Once decoded, <EOS> token is appended at last to the
     predictions for uniformity with targets.
     """
 
@@ -156,7 +156,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
     reqIxs = np.arange(outputBatch.shape[2])
     reqIxs = reqIxs[reqIxs != eosIx]
     outputBatch = outputBatch[:,:,reqIxs]
-    
+
     beamWidth = beamSearchParams["beamWidth"]
     alpha = beamSearchParams["alpha"]
     beta = beamSearchParams["beta"]
@@ -183,8 +183,8 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
         #going over all the time steps
         for t in range(maxT):
 
-            #a temporary beam to store all possible predictions (which are extensions of predictions 
-            #in the main beam after time step t-1) after time step t 
+            #a temporary beam to store all possible predictions (which are extensions of predictions
+            #in the main beam after time step t-1) after time step t
             curr = BeamState(alpha, beta)
             #considering only the characters with probability above a certain threshold to speeden up the algo
             prunedChars = np.where(mat[t,:] > np.log(threshProb))[0]
@@ -208,17 +208,17 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
                 curr.entries[labeling].logPrNonBlank = log_add(curr.entries[labeling].logPrNonBlank, logPrNonBlank)
                 curr.entries[labeling].logPrBlank = log_add(curr.entries[labeling].logPrBlank, logPrBlank)
                 curr.entries[labeling].logPrTotal = log_add(curr.entries[labeling].logPrTotal, log_add(logPrBlank, logPrNonBlank))
-                curr.entries[labeling].logPrText = last.entries[labeling].logPrText 
-                curr.entries[labeling].lmApplied = True 
+                curr.entries[labeling].logPrText = last.entries[labeling].logPrText
+                curr.entries[labeling].lmApplied = True
                 curr.entries[labeling].lmState = last.entries[labeling].lmState
-                
+
 
                 #extending the best prediction with all characters in the pruned set
                 for c in prunedChars:
 
                     if c == blank:
                         continue
-                    
+
                     #extended prediction
                     newLabeling = labeling + (c,)
 
@@ -231,7 +231,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
                     curr.entries[newLabeling].labeling = newLabeling
                     curr.entries[newLabeling].logPrNonBlank = log_add(curr.entries[newLabeling].logPrNonBlank, logPrNonBlank)
                     curr.entries[newLabeling].logPrTotal = log_add(curr.entries[newLabeling].logPrTotal, logPrNonBlank)
-                    
+
                     #applying language model
                     if lm is not None:
                         apply_lm(curr.entries[labeling], curr.entries[newLabeling], spaceIx, lm)
@@ -240,7 +240,7 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
             last = curr
 
         #output the best prediciton
-        bestLabeling = last.sort()[0] 
+        bestLabeling = last.sort()[0]
         bestLabeling = list(bestLabeling)
         bestLabeling.append(eosIx)
         preds.extend(bestLabeling)
@@ -249,5 +249,3 @@ def ctc_search_decode(outputBatch, inputLenBatch, beamSearchParams, spaceIx, eos
     predictionBatch = torch.tensor(preds).int()
     predictionLenBatch = torch.tensor(predLens).int()
     return predictionBatch, predictionLenBatch
-
-

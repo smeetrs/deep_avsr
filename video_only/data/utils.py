@@ -7,10 +7,10 @@ from scipy.special import softmax
 
 
 def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, videoParams):
-    
+
     """
     Function to convert the data sample (visual features file, target file) in the main dataset into appropriate tensors.
-    """ 
+    """
 
     #reading the target from the target file and converting each character to its corresponding index
     with open(targetFile, "r") as f:
@@ -26,11 +26,11 @@ def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, vide
         print("Target length more than 100 characters. Exiting")
         exit()
 
-    
+
     #loading the visual features
     inp = np.load(visualFeaturesFile)
 
-    
+
     #checking whether the input length is greater than or equal to the required length
     #if not, extending the input by padding zero vectors
     inpLen = len(inp)
@@ -52,16 +52,16 @@ def prepare_main_input(visualFeaturesFile, targetFile, reqInpLen, charToIx, vide
 
 
 def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, videoParams):
-    
+
     """
     Function to convert the data sample (visual features file, target file) in the pretrain dataset into appropriate tensors.
     """
-    
+
     #reading the whole target file and the target
     with open(targetFile, "r") as f:
         lines = f.readlines()
     lines = [line.strip() for line in lines]
-    
+
     trgt = lines[0][7:]
     words = trgt.split(" ")
 
@@ -74,9 +74,9 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         #make a list of all possible sub-sequences with required number of words in the target
         nWords = [" ".join(words[i:i+numWords]) for i in range(len(words)-numWords+1)]
         nWordLens = np.array([len(nWord)+1 for nWord in nWords]).astype(np.float)
-        
+
         #choose the sub-sequence for target according to a softmax distribution of the lengths
-        #this way longer sub-sequences (which are more diverse) are selected more often while 
+        #this way longer sub-sequences (which are more diverse) are selected more often while
         #the shorter sub-sequences (which appear more frequently) are not entirely missed out
         ix = np.random.choice(np.arange(len(nWordLens)), p=softmax(nWordLens))
         trgtNWord = nWords[ix]
@@ -95,8 +95,8 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
     trgt.append(charToIx["<EOS>"])
     trgt = np.array(trgt)
     trgtLen = len(trgt)
-    
-    
+
+
     #checking whether the input length is greater than or equal to the required length
     #if not, extending the input by padding zero vectors
     inpLen = len(inp)
@@ -107,20 +107,20 @@ def prepare_pretrain_input(visualFeaturesFile, targetFile, numWords, charToIx, v
         inp = np.pad(inp, ((leftPadding,rightPadding),(0,0)), "constant")
 
     inpLen = len(inp)
-    
+
 
     inp = torch.from_numpy(inp)
     trgt = torch.from_numpy(trgt)
     inpLen = torch.tensor(inpLen)
     trgtLen = torch.tensor(trgtLen)
-    
+
     return inp, trgt, inpLen, trgtLen
 
 
 
 def collate_fn(dataBatch):
     """
-    Collate function definition used in Dataloaders. 
+    Collate function definition used in Dataloaders.
     """
     inputBatch = pad_sequence([data[0] for data in dataBatch])
     targetBatch = torch.cat([data[1] for data in dataBatch])
@@ -143,4 +143,3 @@ def req_input_length(trgt):
         else:
             reqLen = reqLen + 1
     return reqLen
-

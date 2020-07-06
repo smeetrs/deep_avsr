@@ -125,7 +125,7 @@ We provide Word Error Rate (WER) achieved by the models on the test set of the L
 
 Download the pre-trained weights for the Visual Frontend using the following command:
 
-	wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1k0Zk90ASft89-xAEUbu5CmZWih_u_lRN' -O visual_frontend.pt 
+	wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1k0Zk90ASft89-xAEUbu5CmZWih_u_lRN' -O visual_frontend.pt
 
 Download the pre-trained weights for the Language Model using the following command:
 
@@ -140,7 +140,7 @@ The pre-trained weights of the AO, VO and AV models will be made available soon.
 
 ## How To Use
 
-If planning to train the models, download the complete LRS2 dataset from [here](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) or in cases of custom datasets, have the specifications and folder structure similar to LRS2 dataset. 
+If planning to train the models, download the complete LRS2 dataset from [here](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) or in cases of custom datasets, have the specifications and folder structure similar to LRS2 dataset.
 
 Steps have been provided to either train the models or to use the trained models directly for inference:
 
@@ -173,4 +173,4 @@ Set the configuration options in the `config.py` file before each of the followi
 
 ***
 
-*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. Happy Open Source-ing !!* 😃 
+*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. Happy Open Source-ing !!* 😃

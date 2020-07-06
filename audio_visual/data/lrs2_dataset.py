@@ -8,8 +8,8 @@ from .utils import prepare_main_input
 
 
 class LRS2Pretrain(Dataset):
-       
-    """    
+
+    """
     A custom dataset class for the LRS2 pretrain (includes pretain, preval) dataset.
     """
 
@@ -28,7 +28,7 @@ class LRS2Pretrain(Dataset):
         self.noiseProb = noiseParams["noiseProb"]
         self.noiseSNR = noiseParams["noiseSNR"]
         return
-        
+
 
     def __getitem__(self, index):
         if self.dataset == "pretrain":
@@ -39,7 +39,7 @@ class LRS2Pretrain(Dataset):
             ixs = base + index
             ixs = ixs[ixs < len(self.datalist)]
             index = np.random.choice(ixs)
-        
+
         #passing the sample files and the target file paths to the prepare function to obtain the input tensors
         audioFile = self.datalist[index] + ".wav"
         visualFeaturesFile = self.datalist[index] + ".npy"
@@ -48,7 +48,7 @@ class LRS2Pretrain(Dataset):
             noise = self.noise
         else:
             noise = None
-        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, self.numWords, 
+        inp, trgt, inpLen, trgtLen = prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, self.numWords,
                                                             self.charToIx, self.noiseSNR, self.audioParams, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
@@ -68,7 +68,7 @@ class LRS2Main(Dataset):
     """
     A custom dataset class for the LRS2 main (includes train, val, test) dataset
     """
-    
+
     def __init__(self, dataset, datadir, reqInpLen, charToIx, stepSize, audioParams, videoParams, noiseParams):
         super(LRS2Main, self).__init__()
         with open(datadir + "/" + dataset + ".txt", "r") as f:
@@ -84,7 +84,7 @@ class LRS2Main(Dataset):
         self.noiseSNR = noiseParams["noiseSNR"]
         self.noiseProb = noiseParams["noiseProb"]
         return
-        
+
 
     def __getitem__(self, index):
         #using the same procedure as in pretrain dataset class only for the train dataset
@@ -94,7 +94,7 @@ class LRS2Main(Dataset):
             ixs = ixs[ixs < len(self.datalist)]
             index = np.random.choice(ixs)
 
-        #passing the sample files and the target file paths to the prepare function to obtain the input tensors 
+        #passing the sample files and the target file paths to the prepare function to obtain the input tensors
         audioFile = self.datalist[index] + ".wav"
         visualFeaturesFile = self.datalist[index] + ".npy"
         targetFile = self.datalist[index] + ".txt"
@@ -102,17 +102,16 @@ class LRS2Main(Dataset):
             noise = self.noise
         else:
             noise = None
-        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, self.reqInpLen, self.charToIx, 
+        inp, trgt, inpLen, trgtLen = prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, self.reqInpLen, self.charToIx,
                                                         self.noiseSNR, self.audioParams, self.videoParams)
         return inp, trgt, inpLen, trgtLen
 
 
     def __len__(self):
         #using step size only for train dataset and not for val and test datasets because
-        #the size of val and test datasets is smaller than step size and we generally want to validate and test 
+        #the size of val and test datasets is smaller than step size and we generally want to validate and test
         #on the complete dataset
         if self.dataset == "train":
             return self.stepSize
         else:
             return len(self.datalist)
-

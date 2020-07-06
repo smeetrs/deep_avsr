@@ -30,21 +30,21 @@ class PositionalEncoding(nn.Module):
         return outputBatch
 
 
- 
+
 class AudioNet(nn.Module):
 
     """
     An audio-only speech transcription model based on the Transformer architecture.
-    Architecture: A stack of 12 Transformer encoder layers, 
+    Architecture: A stack of 12 Transformer encoder layers,
                   first 6 form the Encoder and the last 6 form the Decoder.
     Character Set: 26 alphabets (A-Z), 10 numbers (0-9), apostrophe ('), space ( ), blank (-), end-of-sequence (<EOS>)
     Input: 321-dim STFT feature vectors with 100 vectors per second. Each group of 4 consecutive feature vectors
            is linearly transformed into a single 512-dim feature vector giving 25 vectors per second.
     Output: Log probabilities over the character set at each time step.
     """
-    
+
     def __init__(self, dModel, nHeads, numLayers, peMaxLen, inSize, fcHiddenSize, dropout, numClasses):
-        super(AudioNet, self).__init__() 
+        super(AudioNet, self).__init__()
         self.audioConv = nn.Conv1d(inSize, dModel, kernel_size=4, stride=4, padding=0)
         self.positionalEncoding = PositionalEncoding(dModel=dModel, maxLen=peMaxLen)
         encoderLayer = nn.TransformerEncoderLayer(d_model=dModel, nhead=nHeads, dim_feedforward=fcHiddenSize, dropout=dropout)

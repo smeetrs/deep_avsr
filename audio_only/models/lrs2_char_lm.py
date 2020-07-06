@@ -31,5 +31,3 @@ class LRS2CharLM(nn.Module):
         outputBatch = F.log_softmax(self.fc(batch), dim=2)
         outputBatch = outputBatch.transpose(0, 1)
         return outputBatch, finalStateBatch
-
-

@@ -27,21 +27,21 @@ torch.backends.cudnn.benchmark = False
 
 #declaring the train and validation datasets and their corresponding dataloaders
 videoParams = {"videoFPS":args["VIDEO_FPS"]}
-trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"],
                      videoParams)
 trainLoader = DataLoader(trainData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
-valData = LRS2Main("val", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+valData = LRS2Main("val", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"],
                    videoParams)
 valLoader = DataLoader(valData, batch_size=args["BATCH_SIZE"], collate_fn=collate_fn, shuffle=True, **kwargs)
 
 
 #declaring the model, optimizer, scheduler and the loss function
-model = VideoNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+model = VideoNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"],
                  args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=args["INIT_LR"], betas=(args["MOMENTUM1"], args["MOMENTUM2"]))
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"], 
-                                                 patience=args["LR_SCHEDULER_WAIT"], threshold=args["LR_SCHEDULER_THRESH"], 
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=args["LR_SCHEDULER_FACTOR"],
+                                                 patience=args["LR_SCHEDULER_WAIT"], threshold=args["LR_SCHEDULER_THRESH"],
                                                  threshold_mode="abs", min_lr=args["FINAL_LR"], verbose=True)
 loss_function = nn.CTCLoss(blank=0, zero_infinity=False)
 
@@ -69,7 +69,7 @@ if args["PRETRAINED_MODEL_FILE"] is not None:
     print("\nLoading the pre-trained model .... \n")
     model.load_state_dict(torch.load(args["CODE_DIRECTORY"] + args["PRETRAINED_MODEL_FILE"], map_location=device))
     model.to(device)
-    print("Loading Done.\n")    
+    print("Loading Done.\n")
 
 
 
@@ -91,7 +91,7 @@ trainParams = {"spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX
 valParams = {"decodeScheme":"greedy", "spaceIx":args["CHAR_TO_INDEX"][" "], "eosIx":args["CHAR_TO_INDEX"]["<EOS>"]}
 
 for step in range(args["NUM_STEPS"]):
-    
+
     #train the model for one step
     trainingLoss, trainingCER, trainingWER = train(model, trainLoader, optimizer, loss_function, device, trainParams)
     trainingLossCurve.append(trainingLoss)
@@ -103,16 +103,16 @@ for step in range(args["NUM_STEPS"]):
     validationWERCurve.append(validationWER)
 
     #printing the stats after each step
-    print("Step: %03d || Tr.Loss: %.6f  Val.Loss: %.6f || Tr.CER: %.3f  Val.CER: %.3f || Tr.WER: %.3f  Val.WER: %.3f" 
+    print("Step: %03d || Tr.Loss: %.6f  Val.Loss: %.6f || Tr.CER: %.3f  Val.CER: %.3f || Tr.WER: %.3f  Val.WER: %.3f"
           %(step, trainingLoss, validationLoss, trainingCER, validationCER, trainingWER, validationWER))
 
     #make a scheduler step
     scheduler.step(validationWER)
-    
+
 
     #saving the model weights and loss/metric curves in the checkpoints directory after every few steps
     if ((step%args["SAVE_FREQUENCY"] == 0) or (step == args["NUM_STEPS"]-1)) and (step != 0):
-        
+
         savePath = args["CODE_DIRECTORY"] + "/checkpoints/models/train-step_{:04d}-wer_{:.3f}.pt".format(step, validationWER)
         torch.save(model.state_dict(), savePath)
 

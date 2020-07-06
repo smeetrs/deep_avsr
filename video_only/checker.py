@@ -58,7 +58,7 @@ def lrs2pretrain_checker():
 
 def lrs2main_checker():
     videoParams = {"videoFPS":args["VIDEO_FPS"]}
-    trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"], 
+    trainData = LRS2Main("train", args["DATA_DIRECTORY"], args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"], args["STEP_SIZE"],
                          videoParams)
     numSamples = len(trainData)
     index = np.random.randint(0, numSamples)
@@ -190,9 +190,9 @@ def lrs2pretrain_max_inplen_checker():
                     nWordLens[nWordLens > 256] = -np.inf
                     if np.all(nWordLens == -np.inf):
                         print("Max target length reached. Exiting")
-                        exit()     
+                        exit()
 
-                    nWords = nWords[nWordLens > 0]       
+                    nWords = nWords[nWordLens > 0]
                     for ix in range(len(nWords)):
                         trgt = nWords[ix]
                         videoStartTime = float(lines[4+ix].split(" ")[1])
@@ -202,15 +202,15 @@ def lrs2pretrain_max_inplen_checker():
                         if reqLen > inpLen:
                             inpLen = reqLen
                         if inpLen > maxInpLen:
-                            maxInpLen = inpLen                            
+                            maxInpLen = inpLen
     print(maxInpLen)
     return
 
 
 def ctc_greedy_decode_checker():
-    outputs = ["TTTEEEST-IINNNN-G-   CC-TTCCC- -DEEE-CO-DD---E       -FUU-NCCC--TAA-B-FA--E", 
-               "ONNE SSSTEEEP    ISSS  OOOOVVEERA- FDDA-S A FD-AASDF - AD-AFA DF-ADF SF-ADF", 
-               "EVERYTHING ALRIGHT CHECK DONE SH-SG-GAD-G HS- RA-R H J- J-AM GA-AM GA-GA-AD", 
+    outputs = ["TTTEEEST-IINNNN-G-   CC-TTCCC- -DEEE-CO-DD---E       -FUU-NCCC--TAA-B-FA--E",
+               "ONNE SSSTEEEP    ISSS  OOOOVVEERA- FDDA-S A FD-AASDF - AD-AFA DF-ADF SF-ADF",
+               "EVERYTHING ALRIGHT CHECK DONE SH-SG-GAD-G HS- RA-R H J- J-AM GA-AM GA-GA-AD",
                "SSEEEE-E--  -EEE-VE-NNN  ---DDDOOOO-ODDE-E   --O-OOOOTTTY AAAASS-SSAAM WORK",
                "---------------------------------------------------------------------------"]
     inpLens = [64, 32, 29, 75, 56]
@@ -239,9 +239,9 @@ def ctc_greedy_decode_checker():
 
 
 def ctc_search_decode_checker():
-    outputs = ["TTTEEEST-IINNNN-G-   CC-TTCCC- -DEEE-CO-DD---E       -FUU-NCCC--TAA-B-FA--E", 
-               "ONNE SSSTEEEP    ISSS  OOOOVVEERA- FDDA-S A FD-AASDF - AD-AFA DF-ADF SF-ADF", 
-               "EVERYTHING ALRIGHT CHECK DONE SH-SG-GAD-G HS- RA-R H J- J-AM GA-AM GA-GA-AD", 
+    outputs = ["TTTEEEST-IINNNN-G-   CC-TTCCC- -DEEE-CO-DD---E       -FUU-NCCC--TAA-B-FA--E",
+               "ONNE SSSTEEEP    ISSS  OOOOVVEERA- FDDA-S A FD-AASDF - AD-AFA DF-ADF SF-ADF",
+               "EVERYTHING ALRIGHT CHECK DONE SH-SG-GAD-G HS- RA-R H J- J-AM GA-AM GA-GA-AD",
                "SSEEEE-E--  -EEE-VE-NNN  ---DDDOOOO-ODDE-E   --O-OOOOTTTY AAAASS-SSAAM WORK",
                "---------------------------------------------------------------------------"]
     inpLens = [64, 32, 29, 75, 56]
@@ -267,7 +267,7 @@ def ctc_search_decode_checker():
     if not args["USE_LM"]:
         lm = None
 
-    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, beamSearchParams, args["CHAR_TO_INDEX"][" "], 
+    predictions, predictionLens = ctc_search_decode(outputLogProbs, inpLens, beamSearchParams, args["CHAR_TO_INDEX"][" "],
                                                     args["CHAR_TO_INDEX"]["<EOS>"], lm)
     predictions = [args["INDEX_TO_CHAR"][ix] for ix in predictions.tolist() if ix != args["CHAR_TO_INDEX"]["<EOS>"]]
     predictedSequences = list()
@@ -294,7 +294,7 @@ def lrs2charlm_checker():
         model.eval()
         with torch.no_grad():
             outputBatch, finalStateBatch = model(inputBatch, initStateBatch)
-        
+
         outputBatch = torch.exp(outputBatch)
         out = outputBatch.squeeze()
         probs = out.tolist()
@@ -311,10 +311,10 @@ def lrs2charlm_checker():
 
 def videonet_checker():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = VideoNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"], 
+    model = VideoNet(args["TX_NUM_FEATURES"], args["TX_ATTENTION_HEADS"], args["TX_NUM_LAYERS"], args["PE_MAX_LENGTH"],
                      args["TX_FEEDFORWARD_DIM"], args["TX_DROPOUT"], args["NUM_CLASSES"])
     model.to(device)
-    T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"] 
+    T, N, C = 10, args["BATCH_SIZE"], args["TX_NUM_FEATURES"]
     inputBatch = torch.rand(T, N, C).to(device)
     model.eval()
     with torch.no_grad():

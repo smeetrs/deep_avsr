@@ -7,10 +7,10 @@ import editdistance
 def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch):
 
     """
-    Function to compute the Character Error Rate using the Predicted character indices and the Target character 
-    indices over a batch. 
-    CER is computed by dividing the total number of character edits with the total number of characters 
-    (total => over all the samples in a batch). 
+    Function to compute the Character Error Rate using the Predicted character indices and the Target character
+    indices over a batch.
+    CER is computed by dividing the total number of character edits with the total number of characters
+    (total => over all the samples in a batch).
     The <EOS> token at the end is excluded before computing the CER.
     """
 
@@ -21,7 +21,7 @@ def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
     trgts = list(torch.split(targetBatch, targetLenBatch.tolist()))
     totalEdits = 0
     totalChars = 0
-    
+
     for n in range(len(preds)):
         pred = preds[n].numpy()[:-1]
         trgt = trgts[n].numpy()[:-1]
@@ -34,23 +34,23 @@ def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
 
 
 def compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, spaceIx):
-    
+
     """
-    Function to compute the Word Error Rate using the Predicted character indices and the Target character 
+    Function to compute the Word Error Rate using the Predicted character indices and the Target character
     indices over a batch. The words are obtained by splitting the output at spaces.
-    WER is computed by dividing the total number of word edits with the total number of words 
-    (total => over all the samples in a batch). 
+    WER is computed by dividing the total number of word edits with the total number of words
+    (total => over all the samples in a batch).
     The <EOS> token at the end is excluded before computing the WER. Words with only a space are removed as well.
     """
 
     targetBatch = targetBatch.cpu()
     targetLenBatch = targetLenBatch.cpu()
-    
+
     preds = list(torch.split(predictionBatch, predictionLenBatch.tolist()))
-    trgts = list(torch.split(targetBatch, targetLenBatch.tolist()))    
+    trgts = list(torch.split(targetBatch, targetLenBatch.tolist()))
     totalEdits = 0
     totalWords = 0
-    
+
     for n in range(len(preds)):
         pred = preds[n].numpy()[:-1]
         trgt = trgts[n].numpy()[:-1]
@@ -66,4 +66,3 @@ def compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
         totalWords = totalWords + len(trgtWords)
 
     return totalEdits/totalWords
-

@@ -35,7 +35,7 @@ class VideoNet(nn.Module):
 
     """
     A video-only speech transcription model based on the Transformer architecture.
-    Architecture: A stack of 12 Transformer encoder layers, 
+    Architecture: A stack of 12 Transformer encoder layers,
                   first 6 form the Encoder and the last 6 form the Decoder.
     Character Set: 26 alphabets (A-Z), 10 numbers (0-9), apostrophe ('), space ( ), blank (-), end-of-sequence (<EOS>)
     Input: 512-dim feature vector corresponding to each video frame giving 25 vectors per second.

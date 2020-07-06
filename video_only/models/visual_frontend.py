@@ -50,7 +50,7 @@ class ResNetLayer(nn.Module):
 
 
 class ResNet(nn.Module):
-    
+
     """
     An 18-layer ResNet architecture.
     """

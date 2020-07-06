@@ -60,7 +60,7 @@ class AVNet(nn.Module):
 
     def forward(self, inputBatch):
         audioInputBatch, videoInputBatch = inputBatch
-        
+
         if audioInputBatch is not None:
             audioInputBatch = audioInputBatch.transpose(0, 1).transpose(1, 2)
             audioBatch = self.audioConv(audioInputBatch)
@@ -69,7 +69,7 @@ class AVNet(nn.Module):
             audioBatch = self.audioEncoder(audioBatch)
         else:
             audioBatch = None
-        
+
         if videoInputBatch is not None:
             videoBatch = self.positionalEncoding(videoInputBatch)
             videoBatch = self.videoEncoder(videoBatch)

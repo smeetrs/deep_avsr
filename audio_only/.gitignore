@@ -130,6 +130,3 @@ dmypy.json
 
 # Temporary folders
 checkpoints/
-
-# Distinct files
-config.py
