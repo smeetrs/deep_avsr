@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 import torch
 from torch.utils.data import Dataset
 import numpy as np

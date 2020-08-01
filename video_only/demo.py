@@ -1,24 +1,25 @@
 """
-Specifications:
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
 
-Videofile - demofile.mp4
+Specifications:
+--------------
+Videofile - .mp4 file
 Properties - Video:
              25 fps, 160x160 RGB frames, Mouth approx. in center,
              face size should be comparable to frame size
              Audio:
              Mono audio, 16000 Hz sample rate
 
-Targetfile - demofile.txt
-Content -
-Text:  THIS SENTENCE IS ONLY FOR DEMO PURPOSE A NUMBER LIKE 4 CAN ALSO BE USED
-Note - Target length <= 100 characters. All characters in capital and no punctuations other than
-       an apostrophe (').
-
-In real world long videos, each video can be appropriately segmented into clips of appropriate length
+Note - 
+Video length should be such that the expected transcription length is less than 100 characters.
+For this, a long video can be appropriately segmented into clips of appropriate length
 depending on the speaking rate of the speaker. For a speaker with around 160 words per min,
-and 6 characters per word (including space) on average, clip lengths should be around 6 secs.
-A prediction concatenating algorithm would be needed to get the final prediction for the complete
-video in such cases.
+and considering 6 characters per word (including space) on average, clip lengths should be
+around 6 secs. 
+The predicted transcriptions will have all characters in capital with no punctuations
+other than an apostrophe (').
 """
 
 import torch
@@ -33,7 +34,6 @@ from models.lrs2_char_lm import LRS2CharLM
 from data.utils import prepare_main_input, collate_fn
 from utils.preprocessing import preprocess_sample
 from utils.decoders import ctc_greedy_decode, ctc_search_decode
-from utils.metrics import compute_cer, compute_wer
 
 
 np.random.seed(args["SEED"])
@@ -76,7 +76,6 @@ if args["TRAINED_MODEL_FILE"] is not None:
         for file in files:
             if file.endswith(".mp4"):
                 sampleFile = os.path.join(root, file[:-4])
-                targetFile = os.path.join(root, file[:-4]) + ".txt"
 
                 #preprocessing the sample
                 params = {"roiSize":args["ROI_SIZE"], "normMean":args["NORMALIZATION_MEAN"], "normStd":args["NORMALIZATION_STD"], "vf":vf}
@@ -85,13 +84,13 @@ if args["TRAINED_MODEL_FILE"] is not None:
                 #converting the data sample into appropriate tensors for input to the model
                 visualFeaturesFile = os.path.join(root, file[:-4]) + ".npy"
                 videoParams = {"videoFPS":args["VIDEO_FPS"]}
-                inp, trgt, inpLen, trgtLen = prepare_main_input(visualFeaturesFile, targetFile, args["MAIN_REQ_INPUT_LENGTH"],
-                                                                args["CHAR_TO_INDEX"], videoParams)
-                inputBatch, targetBatch, inputLenBatch, targetLenBatch = collate_fn([(inp, trgt, inpLen, trgtLen)])
+                inp, _, inpLen, _ = prepare_main_input(visualFeaturesFile, None, args["MAIN_REQ_INPUT_LENGTH"], args["CHAR_TO_INDEX"],
+                                                       videoParams)
+                inputBatch, _, inputLenBatch, _ = collate_fn([(inp, None, inpLen, None)])
 
                 #running the model
-                inputBatch, targetBatch = (inputBatch.float()).to(device), (targetBatch.int()).to(device)
-                inputLenBatch, targetLenBatch = (inputLenBatch.int()).to(device), (targetLenBatch.int()).to(device)
+                inputBatch = (inputBatch.float()).to(device)
+                inputLenBatch = (inputLenBatch.int()).to(device)
                 model.eval()
                 with torch.no_grad():
                     outputBatch = model(inputBatch)
@@ -110,21 +109,13 @@ if args["TRAINED_MODEL_FILE"] is not None:
                     print("Invalid Decode Scheme")
                     exit()
 
-                #computing CER and WER
-                cer = compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch)
-                wer = compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch, args["CHAR_TO_INDEX"][" "])
-
                 #converting character indices back to characters
                 pred = predictionBatch[:][:-1]
-                trgt = targetBatch[:][:-1]
                 pred = "".join([args["INDEX_TO_CHAR"][ix] for ix in pred.tolist()])
-                trgt = "".join([args["INDEX_TO_CHAR"][ix] for ix in trgt.tolist()])
 
                 #printing the predictions
                 print("File: %s" %(file))
                 print("Prediction: %s" %(pred))
-                print("Target: %s" %(trgt))
-                print("CER: %.3f  WER: %.3f" %(cer, wer))
                 print("\n")
 
 

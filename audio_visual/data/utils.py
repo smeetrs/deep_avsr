@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 import torch
 from torch.nn.utils.rnn import pad_sequence
 import numpy as np
@@ -14,19 +20,21 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, reqInpL
     Function to convert the data sample in the main dataset into appropriate tensors.
     """
 
-    #reading the target from the target file and converting each character to its corresponding index
-    with open(targetFile, "r") as f:
-        trgt = f.readline().strip()[7:]
+    if targetFile is not None:
 
-    trgt = [charToIx[char] for char in trgt]
-    trgt.append(charToIx["<EOS>"])
-    trgt = np.array(trgt)
-    trgtLen = len(trgt)
+        #reading the target from the target file and converting each character to its corresponding index
+        with open(targetFile, "r") as f:
+            trgt = f.readline().strip()[7:]
 
-    #the target length must be less than or equal to 100 characters (restricted space where our model will work)
-    if trgtLen > 100:
-        print("Target length more than 100 characters. Exiting")
-        exit()
+        trgt = [charToIx[char] for char in trgt]
+        trgt.append(charToIx["<EOS>"])
+        trgt = np.array(trgt)
+        trgtLen = len(trgt)
+
+        #the target length must be less than or equal to 100 characters (restricted space where our model will work)
+        if trgtLen > 100:
+            print("Target length more than 100 characters. Exiting")
+            exit()
 
 
     #STFT feature extraction
@@ -95,9 +103,12 @@ def prepare_main_input(audioFile, visualFeaturesFile, targetFile, noise, reqInpL
     audInp = torch.from_numpy(audInp)
     vidInp = torch.from_numpy(vidInp)
     inp = (audInp,vidInp)
-    trgt = torch.from_numpy(trgt)
     inpLen = torch.tensor(inpLen)
-    trgtLen = torch.tensor(trgtLen)
+    if targetFile is not None:
+        trgt = torch.from_numpy(trgt)
+        trgtLen = torch.tensor(trgtLen)
+    else:
+        trgt, trgtLen = None, None
 
     return inp, trgt, inpLen, trgtLen
 
@@ -215,8 +226,8 @@ def prepare_pretrain_input(audioFile, visualFeaturesFile, targetFile, noise, num
     audInp = torch.from_numpy(audInp)
     vidInp = torch.from_numpy(vidInp)
     inp = (audInp,vidInp)
-    trgt = torch.from_numpy(trgt)
     inpLen = torch.tensor(inpLen)
+    trgt = torch.from_numpy(trgt)
     trgtLen = torch.tensor(trgtLen)
 
     return inp, trgt, inpLen, trgtLen
@@ -227,11 +238,18 @@ def collate_fn(dataBatch):
     """
     Collate function definition used in Dataloaders.
     """
-    inputBatch = (pad_sequence([data[0][0] for data in dataBatch]),
-                  pad_sequence([data[0][1] for data in dataBatch]))
-    targetBatch = torch.cat([data[1] for data in dataBatch])
+    inputBatch = pad_sequence([data[0] for data in dataBatch])
+    if None not in [data[1] for data in dataBatch]:
+        targetBatch = torch.cat([data[1] for data in dataBatch])
+    else:
+        targetBatch = None
+    
     inputLenBatch = torch.stack([data[2] for data in dataBatch])
-    targetLenBatch = torch.stack([data[3] for data in dataBatch])
+    if None not in [data[3] for data in dataBatch]:
+        targetLenBatch = torch.stack([data[3] for data in dataBatch])
+    else:
+        targetLenBatch = None
+    
     return inputBatch, targetBatch, inputLenBatch, targetLenBatch
 
 

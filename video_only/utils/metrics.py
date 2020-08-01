@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 import torch
 import numpy as np
 import editdistance
@@ -9,8 +15,8 @@ def compute_cer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
     """
     Function to compute the Character Error Rate using the Predicted character indices and the Target character
     indices over a batch.
-    CER is computed by dividing the total number of character edits with the total number of characters
-    (total => over all the samples in a batch).
+    CER is computed by dividing the total number of character edits (computed using the editdistance package)
+    with the total number of characters (total => over all the samples in a batch).
     The <EOS> token at the end is excluded before computing the CER.
     """
 
@@ -38,8 +44,8 @@ def compute_wer(predictionBatch, targetBatch, predictionLenBatch, targetLenBatch
     """
     Function to compute the Word Error Rate using the Predicted character indices and the Target character
     indices over a batch. The words are obtained by splitting the output at spaces.
-    WER is computed by dividing the total number of word edits with the total number of words
-    (total => over all the samples in a batch).
+    WER is computed by dividing the total number of word edits (computed using the editdistance package)
+    with the total number of words (total => over all the samples in a batch).
     The <EOS> token at the end is excluded before computing the WER. Words with only a space are removed as well.
     """
 

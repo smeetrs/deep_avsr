@@ -1,12 +1,13 @@
 # Deep Audio-Visual Speech Recognition
 
-The repository contains a PyTorch reproduction of the [Deep Audio-Visual Speech Recognition](https://arxiv.org/abs/1809.02108) paper. We train three models - Audio-Only (AO), Video-Only (VO) and Audio-Visual (AV), on the [LRS2 dataset](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) for the speech-to-text transcription task.
+The repository contains a PyTorch reproduction of the TM-CTC model from the [Deep Audio-Visual Speech Recognition](https://arxiv.org/abs/1809.02108) paper. We train three models - Audio-Only (AO), Video-Only (VO) and Audio-Visual (AV), on the [LRS2 dataset](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) for the speech-to-text transcription task.
 
 ## Requirements
 
 System packages:
 
 	ffmpeg==2.8.15
+	python==3.6.9
 
 Python packages:
 
@@ -49,7 +50,7 @@ The structure of the `audio_only`, `video_only` and `audio_visual` directories i
 
 `preprocess.py`: Python script for preprocessing all the data samples in the dataset.
 
- `pretrain.py`: Python script for pretraining the model on the pretrain set of the LRS2 dataset using curriculum learning.
+`pretrain.py`: Python script for pretraining the model on the pretrain set of the LRS2 dataset using curriculum learning.
 
 `test.py`: Python script to test the trained model on the test set of the LRS2 dataset.
 

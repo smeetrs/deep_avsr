@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 from torch.utils.data import Dataset
 from scipy.io import wavfile
 import numpy as np

@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 import torch
 import numpy as np
 from tqdm import tqdm

@@ -1,3 +1,9 @@
+"""
+Author: Smeet Shah
+File part of 'deep_avsr' GitHub repository available at -
+https://github.com/LordMartian/deep_avsr
+"""
+
 import os
 
 
@@ -5,7 +11,7 @@ import os
 def preprocess_sample(file):
     """
     Function to preprocess each data sample.
-    Extracts the audio from the video file and saves it to a wav file.
+    Extracts the audio from the video file using the FFmpeg utility and saves it to a wav file.
     """
     videoFile = file + ".mp4"
     audioFile = file + ".wav"
