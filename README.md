@@ -134,9 +134,7 @@ Download the pre-trained weights for the Language Model using the following comm
 
 Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file.
 
-Release of pre-trained weights for AO, VO and AV models may take some time.
-
-[//]: # (Please send an email at `smeetrs<AT>iitb.ac.in` from your institutional email ID for the pre-trained weights of the AO, VO and AV models. Place the weights of each model in the corresponding `/final/models` directory.)
+Please send an email at `smeetrs<AT>iitb.ac.in` from your institutional email ID for the pre-trained weights of the AO, VO and AV models. Place the weights of each model in the corresponding `/final/models` directory.
 
 
 ## How To Use
