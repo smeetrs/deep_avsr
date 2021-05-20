@@ -124,17 +124,14 @@ We provide Word Error Rate (WER) achieved by the models on the test set of the L
 
 ## Pre-trained Weights
 
-Download the pre-trained weights for the Visual Frontend using the following command:
+Download the pre-trained weights for the Visual Frontend from [here](https://drive.google.com/file/d/1cgpu3X6WFbkrMDaHGX-8SWzj4gS-lU6s/view?usp=drivesdk) and for the Language Model from [here](https://drive.google.com/file/d/19viuy3ZXDkmigzdEiRGSZZG1TXwqw3Tb/view?usp=drivesdk). Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file.
 
-	wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1k0Zk90ASft89-xAEUbu5CmZWih_u_lRN' -O visual_frontend.pt
+For the pre-trained weights of the AO, VO and AV models, please send an email at `smeet.shah.c2020<AT>iitbombay.org` from your institutional email ID. Place the weights of each model in the corresponding `/final/models` directory.
 
-Download the pre-trained weights for the Language Model using the following command:
-
-	wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1Gc1YqaTCEqrITYOWPBvmLezE6Fv_e4fu' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1Gc1YqaTCEqrITYOWPBvmLezE6Fv_e4fu" -O language_model.pt && rm -rf /tmp/cookies.txt
-
-Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file.
-
-Please send an email at `smeetrs<AT>iitb.ac.in` from your institutional email ID for the pre-trained weights of the AO, VO and AV models. Place the weights of each model in the corresponding `/final/models` directory.
+***Note:***
+- *Replace `<AT>` with `@` in the email ID while sending an email. It may take few days to reply back. Please have patience.*
+- *Do NOT open issues on GitHub requesting pre-trained weights. Such issues may be deleted. I am sharing weights only via replies to email requests from valid institutional email IDs.*
+- *The link for these weights has also been updated. If required, please resend an email for new link.*
 
 
 ## How To Use
@@ -186,4 +183,4 @@ Set the configuration options in the `config.py` file before each of the followi
 
 ***
 
-*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. Happy Open Source-ing !!* 😃
+*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. However, please be patient if it takes some time to reply. Happy Open Source-ing !!* 😃
