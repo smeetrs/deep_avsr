@@ -129,9 +129,8 @@ Download the pre-trained weights for the Visual Frontend from [here](https://dri
 For the pre-trained weights of the AO, VO and AV models, please send an email at `smeet.shah.c2020<AT>iitbombay.org` from your institutional email ID. Place the weights of each model in the corresponding `/final/models` directory.
 
 ***Note:***
-- *Replace `<AT>` with `@` in the email ID while sending an email. It may take few days to reply back. Please have patience.*
-- *Do NOT open issues on GitHub requesting pre-trained weights. Such issues may be deleted. I am sharing weights only via replies to email requests from valid institutional email IDs.*
-- *The link for these weights has also been updated. If required, please resend an email for new link.*
+- *Replace `<AT>` with `@` in the email ID while sending an email. It could take a few days for me to reply back.*
+- *Please do NOT open issues on GitHub requesting pre-trained weights. Such issues may be deleted. I am sharing weights only via replies to email requests from valid academic institutional email IDs.*
 
 
 ## How To Use
