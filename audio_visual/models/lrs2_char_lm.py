@@ -2,7 +2,7 @@
 Author: Smeet Shah
 Copyright (c) 2020 Smeet Shah
 File part of 'deep_avsr' GitHub repository available at -
-https://github.com/lordmartian/deep_avsr
+https://github.com/smeetrs/deep_avsr
 """
 
 import torch.nn as nn
