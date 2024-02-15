@@ -2,6 +2,7 @@
 
 The repository contains a PyTorch reproduction of the TM-CTC model from the [Deep Audio-Visual Speech Recognition](https://arxiv.org/abs/1809.02108) paper. We train three models - Audio-Only (AO), Video-Only (VO) and Audio-Visual (AV), on the [LRS2 dataset](http://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) for the speech-to-text transcription task.
 
+
 ## Requirements
 
 System packages:
@@ -124,13 +125,9 @@ We provide Word Error Rate (WER) achieved by the models on the test set of the L
 
 ## Pre-trained Weights
 
-Download the pre-trained weights for the Visual Frontend from [here](https://drive.google.com/file/d/1cgpu3X6WFbkrMDaHGX-8SWzj4gS-lU6s/view?usp=drivesdk) and for the Language Model from [here](https://drive.google.com/file/d/19viuy3ZXDkmigzdEiRGSZZG1TXwqw3Tb/view?usp=drivesdk). Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file.
+Download the pre-trained weights for the Visual Frontend, AO, VO, AV and Language model from [here](https://drive.google.com/drive/folders/1vVv4eGpPdnCdLANfrzIsatEcASQ2MEeh).
 
-For the pre-trained weights of the AO, VO and AV models, please send an email at `smeet.shah.c2020<AT>iitbombay.org` from your institutional email ID. Place the weights of each model in the corresponding `/final/models` directory.
-
-***Note:***
-- *Replace `<AT>` with `@` in the email ID while sending an email. It could take a few days for me to reply back.*
-- *Please do NOT open issues on GitHub requesting pre-trained weights. Such issues may be deleted. I am sharing weights only via replies to email requests from valid academic institutional email IDs.*
+Once the Visual Frontend and Language Model weights are downloaded, place them in a folder and add their paths in the `config.py` file. Place the weights of AO, VO and AV model in their corresponding `/final/models` directory.
 
 
 ## How To Use
@@ -174,12 +171,9 @@ Set the configuration options in the `config.py` file before each of the followi
 
 - We have used a GPU with 11 GB memory for our training. Each model took around 7 days for complete training.
 
+
 ## References
 
 1. The pre-trained weights of the Visual Frontend and the Language Model have been obtained from [Afouras T. and Chung J, Deep Lip Reading: a comparison of models and an online application, 2018](https://github.com/afourast/deep_lip_reading) GitHub repository.
 
 2. The CTC beam search implementation is adapted from [Harald Scheidl, CTC Decoding Algorithms](https://github.com/githubharald/CTCDecoder) GitHub repository.
-
-***
-
-*PS: Please do not hesitate to raise an issue in case of any bugs/doubts/suggestions. However, please be patient if it takes some time to reply. Happy Open Source-ing !!* 😃
